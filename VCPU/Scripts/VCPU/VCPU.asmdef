@@ -1,0 +1,16 @@
+{
+    "name": "VCPU",
+    "rootNamespace": "",
+    "references": [
+        "GUID:862b5ec2a5f991147af1bb2143f95c95"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

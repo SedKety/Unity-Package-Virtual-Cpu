@@ -1,0 +1,12 @@
+{
+  "name": "com.virtual-cpu",
+  "version": "1.0.0",
+  "description": "Small virtual cpu that lets you define your own opcodes",
+  "displayName": "Virtual Cpu",
+  "dependencies": { },
+  "author": {
+    "name": "Sed Ket"
+  },
+  "unity": "6000.3",
+  "hideInEditor": false
+}
