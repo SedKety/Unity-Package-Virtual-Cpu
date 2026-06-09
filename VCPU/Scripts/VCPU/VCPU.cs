@@ -1,9 +1,5 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VirtualCPU
 {
@@ -54,6 +50,15 @@ namespace VirtualCPU
         /// Handle to crash the program in 
         /// </summary>
         private Action<string> _crashHandle;
+
+        /// <summary>
+        /// A logger to log messages to the console, this is used to log errors and other information about the program execution,
+        /// </summary>
+        private ILogger _logger;
+
+        private bool _dumpRegisters;
+        private bool _dumpMemory;
+        private bool _dumpFlags;
         #endregion
 
         #region Methods
@@ -65,11 +70,19 @@ namespace VirtualCPU
         /// <param name="memorySize">The size of the memory</param>
         /// <param name="stackSize">The size of the stack</param>
         /// <param name="loggingEnabled">Whether logging is enabled</param>
-        public VCPU(byte[] programArray, OpcodeInstruction[] actions, bool loggingEnabled = true, uint memorySize = 16, uint stackSize = 8)
+        public VCPU(byte[] programArray,
+            OpcodeInstruction[] actions,
+            ILogger logger,
+            bool loggingEnabled = true,
+            bool dumpRegisters = false,
+            bool dumpMemory = false,
+            bool dumpFlags = false,
+            uint memorySize = 16,
+            uint stackSize = 8)
         {
             _loggingEnabled = loggingEnabled;
             _crashHandle = Crash;
-
+            _logger = logger;
             Initialize(memorySize, stackSize);
 
             Run(programArray, actions);
@@ -87,7 +100,7 @@ namespace VirtualCPU
         /// <param name="programArray">The program in bytes to be executed</param>
         private void Run(byte[] programArray, OpcodeInstruction[] actions)
         {
-            Log("Executing the program", ConsoleColor.White);
+            Log("Executing the program");
 
             _program = programArray;
             this._opcodeActions = actions;
@@ -102,19 +115,26 @@ namespace VirtualCPU
                     break; //Stop the loop if no instruction was found to "crash" the program.
                 }
 
-                Log($"<--(Executing {opcode.Name} instruction)-->", ConsoleColor.DarkGreen);
+                Log($"<--(Executing {opcode.Name} instruction)-->");
                 opcode.Act(this, instruction, _crashHandle);
-                Log($"<--(Finished {opcode.Name} instruction)--->", ConsoleColor.DarkGreen);
+                Log($"<--(Finished {opcode.Name} instruction)--->");
                 Space();
             }
 
             Space();
 
-            DumpRegisters();
+            if (_dumpRegisters)
+                DumpRegisters();
+
             Space();
-            DumpFlags();
-            Space();    
-            DumpMemory();
+
+            if (_dumpFlags)
+                DumpFlags();
+
+            Space();
+
+            if (_dumpMemory)
+                DumpMemory();
         }
 
         /// <summary>
@@ -128,32 +148,32 @@ namespace VirtualCPU
 
         private void DumpRegisters()
         {
-            Log("Dumping registers:", ConsoleColor.White);
+            Log("Dumping registers:");
             for (byte i = 0; i < Enum.GetValues(typeof(Register)).Length; i++)
             {
                 var value = _registers.GetRegisterValue(i);
-                Log($"Register {Enum.GetName(typeof(Register), i)} holds = {value}", value == 0 ? ConsoleColor.DarkYellow : ConsoleColor.Yellow);
+                Log($"Register {Enum.GetName(typeof(Register), i)} holds = {value}");
             }
         }
-         
+
         private void DumpFlags()
         {
-            Log("Dumping flags:", ConsoleColor.White);
+            Log("Dumping flags:");
             for (int i = 0; i < Enum.GetValues(typeof(Flags)).Length; i++)
             {
                 var flag = (Flags)(1 << i);
                 var hasFlag = Registers.FlagsRegister.HasFlag(flag);
-                Log($"Flag {flag} is {(hasFlag ? "set" : "not set")}", hasFlag ? ConsoleColor.Yellow : ConsoleColor.DarkYellow);
+                Log($"Flag {flag} is {(hasFlag ? "set" : "not set")}");
             }
         }
 
         private void DumpMemory()
         {
-            Log("Dumping memory:", ConsoleColor.White);
+            Log("Dumping memory:");
             for (uint i = 0; i < _memory.HeapMemorySize; i++)
             {
                 var value = _memory.GetFromMemory(i);
-                Log($"Memory address {i} holds = {value}", value == 0 ? ConsoleColor.DarkYellow : ConsoleColor.Yellow);
+                Log($"Memory address {i} holds = {value}");
             }
         }
         #endregion
@@ -167,14 +187,14 @@ namespace VirtualCPU
         public void SetProgramCounter(byte value)
         {
             _pc = value;
-            if(_pc > _program.Length)
+            if (_pc > _program.Length)
                 Crash("Tried to set the program counter to a value that is out of bounds");
 
         }
 
         public void EndProgram()
         {
-            Log("Ending the program", ConsoleColor.Blue);
+            Log("Ending the program");
             _forceQuit = true;
         }
 
@@ -185,14 +205,14 @@ namespace VirtualCPU
         /// </summary>
         /// <param name="message">The message to print.</param>
         /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>
-        public void Print(string message) => Console.Write(message);
+        public void Print(string message) => _logger.Log(message);
 
         /// <summary>
         /// Prints a character to the console without a new line at the end.
         /// </summary>
         /// <param name="message">The character to print.</param>
         /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>
-        public void Print (char message) => Console.Write(message);
+        public void Print(char message) => _logger.Log(message.ToString());
 
 
         /// <summary>
@@ -213,16 +233,10 @@ namespace VirtualCPU
         /// <param name="message">The message to display in the console.</param>
         /// <param name="color">The color to use for the console output. Defaults to green.</param>
         /// <remarks>This does NOT work if _loggingEnabled is false.</remarks>
-        public void Log(string message, ConsoleColor color = ConsoleColor.Green)
+        public void Log(string message)
         {
-            if (_loggingEnabled) 
-            {
-                Console.ForegroundColor = color;
-
-                Console.WriteLine(message);
-
-                Console.ForegroundColor = ConsoleColor.White;
-            }
+            if (_loggingEnabled)
+                _logger.Log(message);
         }
 
         /// <summary>

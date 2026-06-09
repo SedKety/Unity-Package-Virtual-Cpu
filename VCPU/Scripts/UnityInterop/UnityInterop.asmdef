@@ -1,0 +1,16 @@
+{
+    "name": "UnityInterop",
+    "rootNamespace": "",
+    "references": [
+        "GUID:197df6cbe16d9b54899d9b620c0d1bc7"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

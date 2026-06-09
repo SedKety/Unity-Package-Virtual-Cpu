@@ -33,7 +33,7 @@ namespace VirtualCPU.Opcodes
             {
                 var flag = (Flags)(1 << i);
                 var hasFlag = vCpu.Registers.FlagsRegister.HasFlag(flag);
-                vCpu.Log($"Flag {flag} is {(hasFlag ? "set" : "not set")}", hasFlag ? ConsoleColor.Yellow : ConsoleColor.DarkYellow);
+                vCpu.Log($"Flag {flag} is {(hasFlag ? "set" : "not set")}");
             }
 
             vCpu.SetProgramCounter((byte)(vCpu.ProgramCounter + 3));

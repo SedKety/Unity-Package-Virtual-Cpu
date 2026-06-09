@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VirtualCPU.Opcodes
 {
@@ -82,7 +78,7 @@ namespace VirtualCPU.Opcodes
                 return;
             }
 
-            vCpu.Log($"\nExecuted PRT instruction with output type {outputType}, source type {sourceType} and source {source}", ConsoleColor.Cyan);
+            vCpu.Log($"\nExecuted PRT instruction with output type {outputType}, source type {sourceType} and source {source}");
 
             // Update the program counter when the instruction is finished
             vCpu.SetProgramCounter((byte)internalPc);
