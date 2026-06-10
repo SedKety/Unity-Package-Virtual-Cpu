@@ -17,13 +17,12 @@ namespace VirtualCPU
         /// <summary>
         /// No operation, does nothing and moves to the next instruction. This can be used for padding or to create intentional delays in the execution flow.
         /// </summary>
-        NOP = 0x01, 
+        NOP = 0x01,
 
         /// <summary>
         /// Prints the value of a register or a block of memory to the console.
         /// The instruction format is as follows:
-        /// PRT OutputType 
-        /// (Register = 0, Memory = 1, Immediate value = 2) Source
+        /// PRT OutputType SourceType SourceIndex
         /// </summary>
         PRT = 0x02, 
 

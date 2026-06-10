@@ -184,7 +184,7 @@ namespace VirtualCPU
         /// Sets the program counter to a specific value, if the value is out of bounds it will crash the program
         /// </summary>
         /// <param name="value">The value to set the program counter to.</param>
-        public void SetProgramCounter(byte value)
+        public void SetProgramCounter(int value)
         {
             _pc = value;
             if (_pc > _program.Length)

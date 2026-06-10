@@ -5,7 +5,7 @@ namespace VirtualCPU.Opcodes
     /// <summary>
     /// Instruction to print the value of a register or a block of memory to the console.
     /// The instruction format is as follows:
-    /// PRT OutputType SourceType
+    /// PRT OutputType SourceType SourceIndex
     /// </summary>
     public class PrintInstruction : OpcodeInstruction
     {

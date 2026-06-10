@@ -14,23 +14,24 @@ namespace VirtualCPU.UnityInterop
         // <-----------Locational / Object opcodes------------>
 
         /// <summary>
-        /// SPWN PrefabID X Y Z RegisterIndex
+        /// SPWN PrefabID DestReg
+        /// Location is determined by three consecutive registers (R0..R2) at the time of execution.
         /// Spawns a prefab (by index) at the specified coordinates.
         /// Stores the local object id/handle in the provided register.
         /// </summary>
         SPWN = 0x20,
 
         /// <summary>
-        /// SLCT LocalObjectID
+        /// SPOS SourceType(Immediate, reg, mem) Source(register index, memory location)
         /// Sets position from three consecutive registers (R0..R2) into the object specified by LocalObjectID.
         /// </summary>
-        SLCT = 0x21,
+        SPOS = 0x21,
 
         /// <summary>
-        /// ULCT LocalObjectID
+        /// LPOS SourceType(Immediate, reg, mem) Source(register index, memory location)
         /// Loads position of LocalObjectID into three consecutive registers (R0..R2).
         /// </summary>
-        ULCT = 0x22,
+        LPOS = 0x22,
 
         /// <summary>
         /// DEST LocalObjectID
@@ -40,7 +41,7 @@ namespace VirtualCPU.UnityInterop
 
         /// <summary>
         /// SROT LocalObjectID
-        /// Sets rotation (Euler X,Y,Z) from three registers into LocalObjectID.
+        /// Sets rotation (Euler X,Y,Z) from the first three registers into LocalObjectID.
         /// </summary>
         SROT = 0x24,
 
