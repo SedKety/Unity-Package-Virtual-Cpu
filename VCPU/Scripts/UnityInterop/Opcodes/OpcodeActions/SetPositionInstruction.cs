@@ -40,11 +40,11 @@ public class SetPositionInstruction : OpcodeInstruction
         if (targetedObject != null)
         {
             targetedObject.transform.position = newPos;
-            Debug.LogWarning($"Object(ID) {objectId} set to {newPos}");
+            vCpu.Print($"Object(ID) {objectId} set to {newPos}");
         }
         else
         {
-            Debug.LogWarning($"No object found under the following ID: {objectId}");
+            vCpu.Print($"No object found under the following ID: {objectId}");
         }
 
         vCpu.SetProgramCounter(vCpu.ProgramCounter + 3);

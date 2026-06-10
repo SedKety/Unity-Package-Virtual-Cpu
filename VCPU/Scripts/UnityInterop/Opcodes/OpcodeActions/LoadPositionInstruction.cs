@@ -42,11 +42,11 @@ public class LoadPositionInstruction : OpcodeInstruction
             regs.SetRegisterValue(0, (byte)Mathf.RoundToInt(pos.x));
             regs.SetRegisterValue(1, (byte)Mathf.RoundToInt(pos.y));
             regs.SetRegisterValue(2, (byte)Mathf.RoundToInt(pos.z));
-            Debug.LogWarning($"Object(ID) {ID} position {pos} loaded into registers R0,R1,R2");
+            vCpu.Print($"Object(ID) {ID} position {pos} loaded into registers R0,R1,R2");
         }
         else
         {
-            Debug.LogWarning($"LPOS instruction: No object found with ID {ID}");
+            vCpu.Print($"LPOS instruction: No object found with ID {ID}");
         }
 
         vCpu.SetProgramCounter(vCpu.ProgramCounter + ++internalCounter);

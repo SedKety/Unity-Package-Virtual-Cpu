@@ -34,8 +34,8 @@ namespace VirtualCPU.UnityInterop
         LPOS = 0x22,
 
         /// <summary>
-        /// DEST LocalObjectID
-        /// Destroys the specified local object.
+        /// DEST SourceType(Immediate, reg, mem) Source(register index, memory location)
+        /// Destroys the specified local object by id which is determined by the source type and value (immediate, register, or memory).
         /// </summary>
         DEST = 0x23,
 

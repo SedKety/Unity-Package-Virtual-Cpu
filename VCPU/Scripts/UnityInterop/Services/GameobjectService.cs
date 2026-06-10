@@ -318,6 +318,8 @@ public static class GameobjectService
         if (sceneIndex < 0)
             return false;
 
+        bool removed = false;
+
         if (sceneObjects.TryGetValue(sceneIndex, out var dict))
         {
             if (dict.TryGetValue(index, out var go))
@@ -325,11 +327,40 @@ public static class GameobjectService
                 if (go != null)
                     Object.Destroy(go);
                 dict.Remove(index);
-                return true;
+                removed = true;
             }
         }
 
-        return false;
+        var binding = FindOrCreateBindingsForActiveScene();
+        if (binding != null)
+        {
+            var existing = binding.entries.FirstOrDefault(e => e.key == index);
+            if (existing != null)
+            {
+                binding.entries.Remove(existing);
+                removed = true;
+            }
+        }
+
+        if (removed)
+            BuildDictionary();
+
+        return removed;
+    }
+
+    /// <summary>
+    /// Destroys the provided GameObject if it is registered. Returns true if destroyed/removed.
+    /// </summary>
+    public static bool Destroy(GameObject obj)
+    {
+        if (obj == null)
+            return false;
+
+        int index = GetIndex(obj);
+        if (index == -1)
+            return false;
+
+        return DestroyGameobject(index);
     }
     
     /// <summary>
