@@ -17,6 +17,14 @@ namespace VirtualCPU
         R10 = 10,
         R11 = 11,
         R12 = 12,
+
+        EAX = 13, //Accumulator register, used for arithmetic operations and syscall library number
+        EBX = 14, //Base register, used for memory addressing and syscall local id
+        ECX = 15, //Counter register, used for loops and shifts
+        EDX = 16, //Data register, used for I/O operations and multiplication/division results
+
+        ESI = 17, //Source Index register, used for string operations and memory copying
+        EDI = 18, //Destination Index register, used for string operations and memory copying
     }
 
     /// <summary>
