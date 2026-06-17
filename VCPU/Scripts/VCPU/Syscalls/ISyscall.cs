@@ -1,7 +1,8 @@
 using VirtualCPU;
 
 /// <summary>
-/// Interface for a syscall, this is used to define a syscall that can be executed by the VCPU.
+/// Interface for a syscall. Implementations must also carry a <see cref="SyscallLibraryAttribute"/>
+/// so they are auto-registered by the owning <see cref="SyscallLibrary"/> during initialization.
 /// </summary>
 public interface ISyscall
 {

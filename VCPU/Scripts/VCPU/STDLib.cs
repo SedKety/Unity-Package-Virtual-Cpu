@@ -1,18 +1,14 @@
-using UnityEngine;
 using VirtualCPU;
 
+/// <summary>
+/// Core library — library ID 0x00.
+/// Provides core I/O syscalls: SysRead, SysWrite, SysRandom.
+/// Syscalls are registered automatically via <see cref="SyscallLibraryAttribute"/> and reflection.
+/// </summary>
 public class STDLib : SyscallLibrary
 {
-    public override byte LibraryID => 0;
+    public static readonly STDLib Instance = new STDLib();
+    public override byte LibraryID => 0x00;
 
-    public ISyscall[] syscalls = new ISyscall[256];
-    public override ISyscall GetSyscall(byte ID)
-    {
-        return syscalls[ID];
-    }
-
-    public override void Initialize(VCPU vCpu)
-    {
-        //populate syscalls with all the syscalls in this library
-    }
+    public static readonly byte ID = 0x00;
 }

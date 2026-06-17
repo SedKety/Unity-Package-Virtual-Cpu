@@ -1,11 +1,10 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
 using VirtualCPU;
 
-public class SyscallDispatcher 
+public class SyscallDispatcher
 {
-    private readonly Dictionary<int, SyscallLibrary> _table = new Dictionary<int, SyscallLibrary>();
+    private readonly Dictionary<byte, SyscallLibrary> _table = new Dictionary<byte, SyscallLibrary>();
 
     public SyscallDispatcher(SyscallLibrary[] libraries)
     {
@@ -13,8 +12,21 @@ public class SyscallDispatcher
             _table.Add(library.LibraryID, library);
     }
 
-    public void Dispatch(VCPU cpu)
+    public void Dispatch(VCPU cpu, byte libraryId, byte syscallId, Action<string> crashHandle)
     {
-        //Get the library number from EAX and the local id from EBX 
+        if (!_table.TryGetValue(libraryId, out var library))
+        {
+            crashHandle($"Unknown syscall library 0x{libraryId:X2}");
+            return;
+        }
+
+        var syscall = library.GetSyscall(syscallId);
+        if (syscall == null)
+        {
+            crashHandle($"Unknown syscall 0x{syscallId:X2} in library 0x{libraryId:X2}");
+            return;
+        }
+
+        syscall.Execute(cpu);
     }
 }

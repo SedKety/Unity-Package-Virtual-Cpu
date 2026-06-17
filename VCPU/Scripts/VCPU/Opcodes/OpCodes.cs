@@ -20,18 +20,10 @@ namespace VirtualCPU
         NOP = 0x01,
 
         /// <summary>
-        /// Prints the value of a register or a block of memory to the console.
-        /// The instruction format is as follows:
-        /// PRT OutputType SourceType SourceIndex
+        /// Triggers a syscall. The library is identified by EAX, the syscall within the library by EBX.
+        /// Arguments are passed via ECX, EDX, ESI, EDI. Return value lands in EAX.
         /// </summary>
-        PRT = 0x02, 
-
-        /// <summary>
-        /// Inputs a value from the user and stores it in a specified register.
-        /// The instruction format is as follows:
-        /// IPT RegisterIndex
-        /// </summary>
-        IPT = 0x03,
+        SYSCALL = 0x04,
 
         //<-----------Locational opcodes------------>
 
@@ -98,13 +90,6 @@ namespace VirtualCPU
         /// DEC RegisterIndex
         /// </summary>
         DEC = 0x18,
-
-        /// <summary>
-        /// Generates a random number using the system time as a seed and stores it in a register.
-        /// The instruction format is as follows:
-        /// RND RegisterIndex
-        /// </summary>
-        RND = 0x19
 
     }
 }

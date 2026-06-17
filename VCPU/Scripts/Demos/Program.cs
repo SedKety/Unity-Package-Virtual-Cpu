@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 
@@ -8,15 +8,20 @@ namespace VirtualCPU
     {
         static void Main(string[] args)
         {
-            var program = Executables.OnlyBytes;
+            var program = Executables.PrintSample;
 
-            //Dynamically load all opcode instructions from the assembly
             OpcodeInstruction[] instructions = Assembly.GetAssembly(typeof(Program)).GetTypes()
                 .Where(t => typeof(OpcodeInstruction).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
                 .Select(t => (OpcodeInstruction)Activator.CreateInstance(t))
                 .ToArray();
 
-            VCPU cpu = new VCPU(program, instructions, false, 32);
+            var cpu = new VCPU(
+                program,
+                instructions,
+                new ConsoleLogger(),
+                syscallLibraries: new SyscallLibrary[] { new STDLib() },
+                loggingEnabled: false
+            );
         }
     }
 }

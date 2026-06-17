@@ -31,6 +31,9 @@ namespace VirtualCPU
 
         private OpcodeInstruction[] _opcodeActions;
 
+        public SyscallDispatcher SyscallDispatcher => _syscallDispatcher;
+        private SyscallDispatcher _syscallDispatcher;
+
         /// <summary>
         /// The program counter, this is used to keep track of the current instruction being executed in the program,
         /// </summary>
@@ -73,6 +76,7 @@ namespace VirtualCPU
         public VCPU(byte[] programArray,
             OpcodeInstruction[] actions,
             ILogger logger,
+            SyscallLibrary[] syscallLibraries = null,
             bool loggingEnabled = true,
             bool dumpRegisters = false,
             bool dumpMemory = false,
@@ -83,15 +87,18 @@ namespace VirtualCPU
             _loggingEnabled = loggingEnabled;
             _crashHandle = Crash;
             _logger = logger;
-            Initialize(memorySize, stackSize);
+            Initialize(memorySize, stackSize, syscallLibraries ?? new SyscallLibrary[0]);
 
             Run(programArray, actions);
         }
 
-        private void Initialize(uint memorySize, uint stackSize)
+        private void Initialize(uint memorySize, uint stackSize, SyscallLibrary[] syscallLibraries)
         {
             _memory = new Memory(new byte[memorySize], stackSize, this, _crashHandle);
             _registers = new RegisterManager(this, _crashHandle);
+            _syscallDispatcher = new SyscallDispatcher(syscallLibraries);
+            foreach (var lib in syscallLibraries)
+                lib.Initialize(this);
         }
 
         /// <summary>
