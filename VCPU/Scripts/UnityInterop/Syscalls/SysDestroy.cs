@@ -1,11 +1,11 @@
 using VirtualCPU;
 
 /// <summary>
-/// Destroys the Unity object whose local ID is in ECX.
-/// Takes: EAX=0x01, EBX=<see cref="UnityLibrarySyscall.SysDestroy"/>, ECX=object ID.
+/// Host call — destroys the Unity object whose local ID is in ECX.
+/// HOSTCALL 0x01 <see cref="UnityLibrarySyscall.SysDestroy"/>: ECX=object ID.
 /// </summary>
-[SyscallLibrary(0x01)]
-public class SysDestroy : ISyscall
+[HostCallLibrary(0x01)]
+public class SysDestroy : IHostCall
 {
     public byte ID => (byte)UnityLibrarySyscall.SysDestroy;
 

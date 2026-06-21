@@ -1,11 +1,9 @@
-using VirtualCPU;
-
 /// <summary>
-/// Unity interop library — library ID 0x01.
-/// Provides syscalls for Unity engine operations: object spawning, transforms, physics, audio, UI, and more.
-/// Syscalls are registered automatically via <see cref="SyscallLibraryAttribute"/> and reflection.
+/// Unity interop host library — library ID 0x01.
+/// Provides host calls for Unity engine operations: object spawning, transforms, physics, audio, UI, and more.
+/// Host calls are registered automatically via <see cref="HostCallLibraryAttribute"/> and reflection.
 /// </summary>
-public class UnityLib : SyscallLibrary
+public class UnityLib : HostCallLibrary
 {
     public static readonly byte ID = 0x01;
     public override byte LibraryID => 0x01;

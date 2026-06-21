@@ -37,17 +37,15 @@ namespace VirtualCPU
             (byte)OpCodes.END
         };
 
-        // Print 42 as decimal via SysWrite syscall
-        // EAX=0x00 (STDLib), EBX=SysWrite, ECX=Decimal, EDX=Register, ESI=R0
+        // Print 42 as decimal via SysWrite core call
+        // ECX=Decimal, EDX=Register, ESI=R0
         public static byte[] PrintSample = new byte[]
         {
             (byte)OpCodes.LOAD,    (byte)Register.R0,  42,
-            (byte)OpCodes.LOAD,    (byte)Register.EAX, 0x00,
-            (byte)OpCodes.LOAD,    (byte)Register.EBX, (byte)STDLibSyscall.SysWrite,
             (byte)OpCodes.LOAD,    (byte)Register.ECX, (byte)OutputType.Decimal,
             (byte)OpCodes.LOAD,    (byte)Register.EDX, (byte)SourceType.Register,
             (byte)OpCodes.LOAD,    (byte)Register.ESI, (byte)Register.R0,
-            (byte)OpCodes.SYSCALL,
+            (byte)OpCodes.CORECALL, (byte)CoreCallID.SysWrite,
             (byte)OpCodes.END
         };
 

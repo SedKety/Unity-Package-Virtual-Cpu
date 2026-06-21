@@ -2,17 +2,16 @@ using System;
 
 namespace VirtualCPU.Opcodes
 {
-    public class SyscallInstruction : OpcodeInstruction
+    public class CoreCallInstruction : OpcodeInstruction
     {
-        public string Name => "SYSCALL";
-        public bool Accept(byte opcode) => opcode == (byte)OpCodes.SYSCALL;
+        public string Name => "CORECALL";
+        public bool Accept(byte opcode) => opcode == (byte)OpCodes.CORECALL;
 
         public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
         {
-            byte libraryId = vCpu.Program[vCpu.ProgramCounter + 1];
-            byte syscallId = vCpu.Program[vCpu.ProgramCounter + 2];
-            vCpu.SyscallDispatcher.Dispatch(vCpu, libraryId, syscallId, crashHandle);
-            vCpu.SetProgramCounter(vCpu.ProgramCounter + 3);
+            byte callId = vCpu.Program[vCpu.ProgramCounter + 1];
+            vCpu.CoreCallDispatcher.Dispatch(vCpu, callId, crashHandle);
+            vCpu.SetProgramCounter(vCpu.ProgramCounter + 2);
         }
     }
 }

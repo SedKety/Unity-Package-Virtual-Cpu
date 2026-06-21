@@ -2,11 +2,11 @@ using UnityEngine;
 using VirtualCPU;
 
 /// <summary>
-/// Sets the world position of the object whose ID is in ECX to the vector held in R0/R1/R2.
-/// Takes: EAX=0x01, EBX=<see cref="UnityLibrarySyscall.SysSetPosition"/>, R0/R1/R2=X/Y/Z, ECX=object ID.
+/// Host call — sets the world position of the object whose ID is in ECX to the vector held in R0/R1/R2.
+/// HOSTCALL 0x01 <see cref="UnityLibrarySyscall.SysSetPosition"/>: R0/R1/R2=X/Y/Z, ECX=object ID.
 /// </summary>
-[SyscallLibrary(0x01)]
-public class SysSetPosition : ISyscall
+[HostCallLibrary(0x01)]
+public class SysSetPosition : IHostCall
 {
     public byte ID => (byte)UnityLibrarySyscall.SysSetPosition;
 

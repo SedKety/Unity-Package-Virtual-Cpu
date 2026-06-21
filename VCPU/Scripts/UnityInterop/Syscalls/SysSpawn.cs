@@ -2,12 +2,12 @@ using UnityEngine;
 using VirtualCPU;
 
 /// <summary>
-/// Spawns a prefab at the position held in R0/R1/R2 and stores the object ID in the destination register.
-/// Takes: EAX=0x01, EBX=<see cref="UnityLibrarySyscall.SysSpawn"/>, R0/R1/R2=spawn position X/Y/Z, ECX=prefabId, EDX=destination register index.
+/// Host call — spawns a prefab at the position held in R0/R1/R2 and stores the object ID in the destination register.
+/// HOSTCALL 0x01 <see cref="UnityLibrarySyscall.SysSpawn"/>: R0/R1/R2=spawn position X/Y/Z, ECX=prefabId, EDX=destination register index.
 /// Returns: object ID written into the register at index EDX; 0 if spawn failed.
 /// </summary>
-[SyscallLibrary(0x01)]
-public class SysSpawn : ISyscall
+[HostCallLibrary(0x01)]
+public class SysSpawn : IHostCall
 {
     public byte ID => (byte)UnityLibrarySyscall.SysSpawn;
 

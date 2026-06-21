@@ -1,8 +1,8 @@
 using VirtualCPU;
 
 /// <summary>
-/// Syscall IDs for the Unity interop library (library ID 0x01).
-/// Load 0x01 into EAX and one of these values into EBX before executing SYSCALL.
+/// Call IDs for the Unity interop host library (library ID 0x01).
+/// Use: HOSTCALL 0x01 &lt;functionIndex&gt;
 /// </summary>
 public enum UnityLibrarySyscall : byte
 {

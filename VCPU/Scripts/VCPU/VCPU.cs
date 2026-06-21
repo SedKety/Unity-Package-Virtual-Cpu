@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 
 namespace VirtualCPU
 {
@@ -31,8 +32,19 @@ namespace VirtualCPU
 
         private OpcodeInstruction[] _opcodeActions;
 
-        public SyscallDispatcher SyscallDispatcher => _syscallDispatcher;
-        private SyscallDispatcher _syscallDispatcher;
+        /// <summary>
+        /// The core call dispatcher, this is used to dispatch core calls to the appropriate methods, 
+        /// and is initialized in the constructor with the default core calls (SysRead, SysWrite, SysRandom).
+        /// </summary>
+        public CoreCallDispatcher CoreCallDispatcher => _coreCallDispatcher;
+        private CoreCallDispatcher _coreCallDispatcher;
+
+        /// <summary>
+        /// The host call dispatcher, this is used to dispatch host calls to the appropriate methods,
+        /// and is initialized in the constructor with the specified host libraries.
+        /// </summary>
+        public HostCallDispatcher HostCallDispatcher => _hostCallDispatcher;
+        private HostCallDispatcher _hostCallDispatcher;
 
         /// <summary>
         /// The program counter, this is used to keep track of the current instruction being executed in the program,
@@ -65,18 +77,9 @@ namespace VirtualCPU
         #endregion
 
         #region Methods
-        /// <summary>
-        /// Initializes the virtual CPU with the specified memory and stack sizes.
-        /// </summary>
-        /// <param name="programArray">The program in bytes to be executed</param>
-        /// <param name="actions">The array of opcode instructions</param>
-        /// <param name="memorySize">The size of the memory</param>
-        /// <param name="stackSize">The size of the stack</param>
-        /// <param name="loggingEnabled">Whether logging is enabled</param>
         public VCPU(byte[] programArray,
-            OpcodeInstruction[] actions,
             ILogger logger,
-            SyscallLibrary[] syscallLibraries = null,
+            HostCallLibrary[] hostLibraries = null,
             bool loggingEnabled = true,
             bool dumpRegisters = false,
             bool dumpMemory = false,
@@ -87,17 +90,22 @@ namespace VirtualCPU
             _loggingEnabled = loggingEnabled;
             _crashHandle = Crash;
             _logger = logger;
-            Initialize(memorySize, stackSize, syscallLibraries ?? new SyscallLibrary[0]);
+            Initialize(memorySize, stackSize, hostLibraries ?? new HostCallLibrary[0]);
 
-            Run(programArray, actions);
+            Run(programArray);
         }
 
-        private void Initialize(uint memorySize, uint stackSize, SyscallLibrary[] syscallLibraries)
+        private void Initialize(uint memorySize, uint stackSize, HostCallLibrary[] hostLibraries)
         {
             _memory = new Memory(new byte[memorySize], stackSize, this, _crashHandle);
             _registers = new RegisterManager(this, _crashHandle);
-            _syscallDispatcher = new SyscallDispatcher(syscallLibraries);
-            foreach (var lib in syscallLibraries)
+            _coreCallDispatcher = new CoreCallDispatcher();
+            _hostCallDispatcher = new HostCallDispatcher(hostLibraries);
+            _opcodeActions = Assembly.GetAssembly(typeof(VCPU)).GetTypes()
+                .Where(t => typeof(OpcodeInstruction).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+                .Select(t => (OpcodeInstruction)Activator.CreateInstance(t))
+                .ToArray();
+            foreach (var lib in hostLibraries)
                 lib.Initialize(this);
         }
 
@@ -105,14 +113,13 @@ namespace VirtualCPU
         /// Executes the program
         /// </summary>
         /// <param name="programArray">The program in bytes to be executed</param>
-        private void Run(byte[] programArray, OpcodeInstruction[] actions)
+        private void Run(byte[] programArray)
         {
             Log("Executing the program");
 
             _program = programArray;
-            this._opcodeActions = actions;
 
-            while (_pc < _program.Length & !_forceQuit)
+            while (_pc < _program.Length && !_forceQuit)
             {
                 byte instruction = _program[_pc]; // Current instruction(the byte at the program counter)
                 var opcode = _opcodeActions.Where(x => x.Accept(instruction)).FirstOrDefault();

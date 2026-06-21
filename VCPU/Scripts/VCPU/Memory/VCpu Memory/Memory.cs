@@ -140,7 +140,7 @@ namespace VirtualCPU
         /// <remarks> ! Can SegFault !</remarks>
         public byte GetFromMemory(uint adress)
         {
-            if (adress > _heapMemory.Length)
+            if (adress >= _heapMemory.Length)
             {
                 _crashHandle(SegmentationFaultMessage(adress));
                 return 0;

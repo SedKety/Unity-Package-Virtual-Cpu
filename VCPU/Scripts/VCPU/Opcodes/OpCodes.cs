@@ -1,5 +1,4 @@
 
-
 namespace VirtualCPU
 {
     /// <summary>
@@ -9,42 +8,46 @@ namespace VirtualCPU
     public enum OpCodes : byte
     {
         //<-----------Program opcodes------------>
+
         /// <summary>
         /// Signifies the end of the program. When the VirtualCPU encounters this opcode, it will stop executing further instructions.
         /// </summary>
         END = 0x00,
 
         /// <summary>
-        /// No operation, does nothing and moves to the next instruction. This can be used for padding or to create intentional delays in the execution flow.
+        /// No operation, does nothing and moves to the next instruction.
         /// </summary>
         NOP = 0x01,
 
         /// <summary>
-        /// Triggers a syscall. The library is identified by EAX, the syscall within the library by EBX.
-        /// Arguments are passed via ECX, EDX, ESI, EDI. Return value lands in EAX.
+        /// Invokes a built-in core call. Always available, no library required.
+        /// Format: CORECALL callIndex
         /// </summary>
-        SYSCALL = 0x04,
+        CORECALL = 0x02,
+
+        /// <summary>
+        /// Invokes a call in a user-provided host library.
+        /// Format: HOSTCALL libraryIndex functionIndex
+        /// </summary>
+        HOSTCALL = 0x03,
 
         //<-----------Locational opcodes------------>
 
         /// <summary>
         /// Loads a value into a specified register.
-        /// The instruction format is as follows:
-        /// LOAD RegisterIndex Value
+        /// Format: LOAD RegisterIndex Value
         /// </summary>
         LOAD = 0x05,
 
         /// <summary>
         /// Jumps to a specified address in the program.
-        /// The instruction format is as follows:
-        /// JMP Address
+        /// Format: JMP Address
         /// </summary>
         JMP = 0x06,
 
         /// <summary>
-        /// Moves a value from Memory to Register or Register to Memory
-        /// The instruction format is as follows:
-        /// MOV Source Destination
+        /// Moves a value from Memory to Register or Register to Memory.
+        /// Format: MOV Source Destination
         /// </summary>
         MOV = 0x07,
 
@@ -57,39 +60,32 @@ namespace VirtualCPU
 
         /// <summary>
         /// Adds the values of two registers and stores the result in the first register.
-        /// The instruction format is as follows:
-        /// ADD RegisterIndex1 RegisterIndex2
+        /// Format: ADD RegisterIndex1 RegisterIndex2
         /// </summary>
         ADD = 0x14,
 
         /// <summary>
-        /// Compares the values of two registers and sets the appropriate flags based on the result 
-        /// (e.g., zero flag, signed flag, overflow flag).
-        /// The instruction format is as follows:
-        /// CMP RegisterIndex1 RegisterIndex2
+        /// Compares the values of two registers and sets the appropriate flags.
+        /// Format: CMP RegisterIndex1 RegisterIndex2
         /// </summary>
         CMP = 0x15,
 
         /// <summary>
-        /// Subtracts the value of the second register from the first register and stores the result in the first register.
-        /// The instruction format is as follows:
-        /// SUB RegisterIndex1 RegisterIndex2         
+        /// Subtracts the value of the second register from the first and stores the result in the first.
+        /// Format: SUB RegisterIndex1 RegisterIndex2
         /// </summary>
         SUB = 0x16,
 
         /// <summary>
         /// Increments the value of a specified register by 1.
-        /// The instruction format is as follows:
-        /// INC RegisterIndex
+        /// Format: INC RegisterIndex
         /// </summary>
         INC = 0x17,
 
         /// <summary>
         /// Decrements the value of a specified register by 1.
-        /// The instruction format is as follows:
-        /// DEC RegisterIndex
+        /// Format: DEC RegisterIndex
         /// </summary>
         DEC = 0x18,
-
     }
 }

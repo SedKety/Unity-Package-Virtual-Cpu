@@ -2,12 +2,11 @@ using UnityEngine;
 using VirtualCPU;
 
 /// <summary>
-/// Loads the world position of the object whose ID is in ECX into R0/R1/R2 (rounded to integer).
-/// Takes: EAX=0x01, EBX=<see cref="UnityLibrarySyscall.SysLoadPosition"/>, ECX=object ID.
-/// Returns: position written into R0/R1/R2.
+/// Host call — loads the world position of the object whose ID is in ECX into R0/R1/R2 (rounded to integer).
+/// HOSTCALL 0x01 <see cref="UnityLibrarySyscall.SysLoadPosition"/>: ECX=object ID. Returns: position in R0/R1/R2.
 /// </summary>
-[SyscallLibrary(0x01)]
-public class SysLoadPosition : ISyscall
+[HostCallLibrary(0x01)]
+public class SysLoadPosition : IHostCall
 {
     public byte ID => (byte)UnityLibrarySyscall.SysLoadPosition;
 
