@@ -21,6 +21,7 @@ public static class WhyFileCreator
 
         //Overly long string to write a hello world program.
         //For now fully in HEX Bytecode, later I'll change it to assembly-like syntax for readability.
+        //Note that this also will be a template file instead of this horrible inline code string lols
         File.WriteAllText(fullPath,
             ".Headers \n" + //Start of headers section
             ".HEX ;This tells the compiler to read the code in hex format \n\n" +

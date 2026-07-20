@@ -4,9 +4,17 @@ using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// Compiles any .why script into the VM bytecode that can be executed by the VCPU.
+/// </summary>
 public static class ScriptCompiler
 {
-    public static byte[] Compile(UnityEngine.TextAsset script)
+    /// <summary>
+    /// Compiles the given script into a byte array that can be executed by the VCPU.
+    /// </summary>
+    /// <param name="script">The script to compile.</param>
+    /// <returns>A byte array representing the compiled script in bytecode.</returns>
+    public static byte[] Compile(TextAsset script)
     {
         var program = new List<byte>();
 
@@ -33,6 +41,11 @@ public static class ScriptCompiler
         return program.ToArray();
     }
 
+    /// <summary>
+    /// Compiles the given script lines in hexadecimal format into a byte array.
+    /// </summary>
+    /// <param name="lines">The lines of the script in hexadecimal format.</param>
+    /// <returns>The compiled hex in bytecode.</returns>
     private static byte[] CompileHex(string[] lines)
     {
         var compiledCode = new List<byte>();
@@ -41,14 +54,13 @@ public static class ScriptCompiler
         {
             for (int i = 0; i < line.Length; i++)
             {
-                if (i + 1 < line.Length && line[i] == '0' && line[i + 1] == 'x')
+                if (i + 1 < line.Length && line[i] == '0' && line[i + 1] == 'x') //Checks for 0x prefix
                 {
                     string fullValue = "";
                     i += 2;
-                    for (int j = 0; j < 2; j++)
-                    {
+                    for (int j = 0; j < 2; j++) //Write the next two characters into fullValue, which should be the full hex value
                         fullValue += line[i + j];
-                    }
+
                     if (byte.TryParse(fullValue, NumberStyles.HexNumber, null, out byte b))
                         compiledCode.Add(b);
                     else
@@ -63,6 +75,13 @@ public static class ScriptCompiler
     private static byte[] CompileAsm(string[] lines) { return Array.Empty<byte>(); }
     private static byte[] CompileDec(string[] lines) { return Array.Empty<byte>(); }
     private static byte[] CompileBin(string[] lines) { return Array.Empty<byte>(); }
+
+    /// <summary>
+    /// Is to be replaced with the method of the corrosponding "standard" header type established in the top of the script,
+    /// if not this header is ignored.
+    /// </summary>
+    /// <param name="lines"></param>
+    /// <returns></returns>
     private static byte[] CompileNone(string[] lines) { return Array.Empty<byte>(); }
 
     /// <summary>
@@ -169,6 +188,9 @@ public static class ScriptCompiler
     }
 }
 
+/// <summary>
+/// Defines the possible headers for the script compiler, which determine how the code section is interpreted.
+/// </summary>
 public enum Headers
 {
     /// <summary>Zero headers</summary>

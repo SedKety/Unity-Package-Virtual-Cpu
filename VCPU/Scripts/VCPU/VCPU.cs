@@ -67,7 +67,7 @@ namespace VirtualCPU
         private Action<string> _crashHandle;
 
         /// <summary>
-        /// A logger to log messages to the console, this is used to log errors and other information about the program execution,
+        /// A logger to log messages, this is used for the "console" output in the program,
         /// </summary>
         private ILogger _logger;
 
@@ -215,14 +215,14 @@ namespace VirtualCPU
         #region Printing/Logging
 
         /// <summary>
-        /// Prints a message to the console without a new line at the end.
+        /// Prints a message to the <see cref="ILogger"/> without a new line at the end.
         /// </summary>
         /// <param name="message">The message to print.</param>
         /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>
         public void Print(string message) => _logger.Log(message);
 
         /// <summary>
-        /// Prints a character to the console without a new line at the end.
+        /// Prints a character to the given <see cref="ILogger"/> without a new line at the end.
         /// </summary>
         /// <param name="message">The character to print.</param>
         /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>

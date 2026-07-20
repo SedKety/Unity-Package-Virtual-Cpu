@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c31fdaa5fbc55b44b8bb5006d1c334de, type: 3}
+  m_Name: StdTokenRegistry
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::WhyTokenRegistry
+  tokens:
+  - hex: 0x00
+    color: {r: 0.85, g: 0.3, b: 0.3, a: 1}
+    tooltip: "END \u2014 halt the CPU"
+    argNames: []
+  - hex: 0x01
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    tooltip: "NOP \u2014 no operation"
+    argNames: []
+  - hex: 0x02
+    color: {r: 0.35, g: 0.7, b: 1, a: 1}
+    tooltip: "CORECALL callIndex \u2014 invoke a built-in syscall"
+    argNames:
+    - call index
+  - hex: 0x03
+    color: {r: 0.35, g: 0.7, b: 1, a: 1}
+    tooltip: "HOSTCALL libraryIndex functionIndex \u2014 invoke a host library function"
+    argNames:
+    - library index
+    - function index
+  - hex: 0x05
+    color: {r: 1, g: 0.8, b: 0.2, a: 1}
+    tooltip: "LOAD registerIndex value \u2014 load an immediate value into a register"
+    argNames:
+    - register
+    - value
+  - hex: 0x06
+    color: {r: 0.75, g: 0.4, b: 0.9, a: 1}
+    tooltip: "JMP address \u2014 unconditional jump"
+    argNames:
+    - address
+  - hex: 0x07
+    color: {r: 0.4, g: 0.9, b: 0.55, a: 1}
+    tooltip: "MOV source destination \u2014 move between register and memory"
+    argNames:
+    - source
+    - source is register
+    - destination
+    - destination is register
+  - hex: 0x08
+    color: {r: 0.9, g: 0.55, b: 0.85, a: 1}
+    tooltip: "JNE \u2014 jump if not equal"
+    argNames:
+    - address
+  - hex: 0x09
+    color: {r: 0.9, g: 0.55, b: 0.85, a: 1}
+    tooltip: "JE  \u2014 jump if equal"
+    argNames:
+    - address
+  - hex: 0x0a
+    color: {r: 0.9, g: 0.55, b: 0.85, a: 1}
+    tooltip: "JL  \u2014 jump if less than"
+    argNames:
+    - address
+  - hex: 0x0b
+    color: {r: 0.9, g: 0.55, b: 0.85, a: 1}
+    tooltip: "JG  \u2014 jump if greater than"
+    argNames:
+    - address
+  - hex: 0x14
+    color: {r: 1, g: 0.65, b: 0.2, a: 1}
+    tooltip: "ADD reg1 reg2 \u2014 add registers, result in reg1"
+    argNames:
+    - register 1 (result)
+    - register 2
+  - hex: 0x15
+    color: {r: 1, g: 0.65, b: 0.2, a: 1}
+    tooltip: "CMP reg1 reg2 \u2014 compare and set flags"
+    argNames:
+    - register 1
+    - register 2
+  - hex: 0x16
+    color: {r: 1, g: 0.65, b: 0.2, a: 1}
+    tooltip: "SUB reg1 reg2 \u2014 subtract reg2 from reg1"
+    argNames:
+    - register 1 (result)
+    - register 2
+  - hex: 0x17
+    color: {r: 1, g: 0.65, b: 0.2, a: 1}
+    tooltip: "INC register \u2014 increment register by 1"
+    argNames:
+    - register
+  - hex: 0x18
+    color: {r: 1, g: 0.65, b: 0.2, a: 1}
+    tooltip: "DEC register \u2014 decrement register by 1"
+    argNames:
+    - register

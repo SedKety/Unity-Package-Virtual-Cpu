@@ -35,11 +35,13 @@ public class SysWrite : ICoreCall
             var curByte = cpu.Memory.GetFromMemory(addr++);
             if (outputType == OutputType.String)
             {
+                var sb = new System.Text.StringBuilder();
                 while (curByte != '\0')
                 {
-                    printValue(curByte);
+                    sb.Append((char)curByte);
                     curByte = cpu.Memory.GetFromMemory(addr++);
                 }
+                cpu.Print(sb.ToString());
             }
             else
             {
