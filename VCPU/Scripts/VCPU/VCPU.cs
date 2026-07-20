@@ -23,12 +23,12 @@ namespace VirtualCPU
         /// The program in bytes that is being executed, 
         /// this is set when the Run method is called, and is used to fetch instructions and data from it.
         /// </summary>
-        private byte[] _program = new byte[0];
+        private int[] _program = new int[0];
 
         /// <summary>
         /// The program that is being executed, this is set when the Run method is called, and is used to fetch instructions and data from it.
         /// </summary>
-        public ref byte[] Program => ref _program;
+        public ref int[] Program => ref _program;
 
         private OpcodeInstruction[] _opcodeActions;
 
@@ -57,6 +57,13 @@ namespace VirtualCPU
         /// </summary>
         public int ProgramCounter => _pc;
 
+        /// <summary>
+        /// This decides how many instructions are executed each second, 
+        /// this is used to control the speed of the program execution, and is set in the constructor.
+        /// </summary>
+        /// <remarks>0 will execute all instructions at once, note that this blocks the main thread.</remarks>
+        private int _tickRate = 0;
+
         private bool _loggingEnabled = true;
 
         private bool _forceQuit = false;
@@ -77,7 +84,7 @@ namespace VirtualCPU
         #endregion
 
         #region Methods
-        public VCPU(byte[] programArray,
+        public VCPU(int[] programArray,
             ILogger logger,
             HostCallLibrary[] hostLibraries = null,
             bool loggingEnabled = true,
@@ -85,11 +92,15 @@ namespace VirtualCPU
             bool dumpMemory = false,
             bool dumpFlags = false,
             uint memorySize = 16,
-            uint stackSize = 8)
+            uint stackSize = 8,
+            uint entryPoint = 0,
+            uint tickRate = 60
+            )
         {
             _loggingEnabled = loggingEnabled;
             _crashHandle = Crash;
             _logger = logger;
+            _pc = (int)entryPoint;
             Initialize(memorySize, stackSize, hostLibraries ?? new HostCallLibrary[0]);
 
             Run(programArray);
@@ -97,7 +108,7 @@ namespace VirtualCPU
 
         private void Initialize(uint memorySize, uint stackSize, HostCallLibrary[] hostLibraries)
         {
-            _memory = new Memory(new byte[memorySize], stackSize, this, _crashHandle);
+            _memory = new Memory(new int[memorySize], stackSize, this, _crashHandle);
             _registers = new RegisterManager(this, _crashHandle);
             _coreCallDispatcher = new CoreCallDispatcher();
             _hostCallDispatcher = new HostCallDispatcher(hostLibraries);
@@ -113,7 +124,7 @@ namespace VirtualCPU
         /// Executes the program
         /// </summary>
         /// <param name="programArray">The program in bytes to be executed</param>
-        private void Run(byte[] programArray)
+        private void Run(int[] programArray)
         {
             Log("Executing the program");
 
@@ -121,7 +132,7 @@ namespace VirtualCPU
 
             while (_pc < _program.Length && !_forceQuit)
             {
-                byte instruction = _program[_pc]; // Current instruction(the byte at the program counter)
+                int instruction = _program[_pc]; // Current instruction at the program counter
                 var opcode = _opcodeActions.Where(x => x.Accept(instruction)).FirstOrDefault();
                 if (opcode == null)
                 {
@@ -163,7 +174,7 @@ namespace VirtualCPU
         private void DumpRegisters()
         {
             Log("Dumping registers:");
-            for (byte i = 0; i < Enum.GetValues(typeof(Register)).Length; i++)
+            for (int i = 0; i < Enum.GetValues(typeof(Register)).Length; i++)
             {
                 var value = _registers.GetRegisterValue(i);
                 Log($"Register {Enum.GetName(typeof(Register), i)} holds = {value}");

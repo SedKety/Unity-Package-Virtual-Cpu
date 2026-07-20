@@ -7,11 +7,11 @@ using VirtualCPU;
 [HostCallLibrary(0x01)]
 public class SysDestroy : IHostCall
 {
-    public byte ID => (byte)UnityLibrarySyscall.SysDestroy;
+    public int ID => (int)UnityLibrarySyscall.SysDestroy;
 
     public void Execute(VCPU cpu)
     {
-        var id  = cpu.Registers.GetRegisterValue((byte)Register.ECX);
+        var id  = cpu.Registers.GetRegisterValue((int)Register.ECX);
         var obj = GameobjectService.GetObject(id);
 
         if (obj != null)

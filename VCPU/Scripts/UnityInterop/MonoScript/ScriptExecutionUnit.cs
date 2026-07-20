@@ -17,7 +17,7 @@ public class ScriptExecutionUnit : MonoBehaviour
     [SerializeField] private bool _shouldDumpMemory = false;
     [SerializeField] private bool _shouldDumpFlags = false;
 
-    private byte[] _program;
+    private int[] _program;
 
     [ContextMenu("Execute")]
     public void Execute()

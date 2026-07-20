@@ -43,23 +43,26 @@ public partial class WhyEditorWindow
     /// </summary>
     private void RunScript()
     {
-        byte[] program = CompileForEditor(StripVisualPrefixes(_content));
+        int[] program = CompileForEditor(StripVisualPrefixes(_content));
 
         var terminal = WhyTerminalWindow.GetOrOpen();
         terminal.Clear();
 
         if (program == null || program.Length == 0)
         {
-            terminal.AppendError("Compile failed — no bytecode produced. Check the file for errors.");
+            terminal.AppendError("Compile failed; no bytecode produced. Check the file in the code editor for errors.");
             return;
         }
 
-        terminal.Append($"▶  Compiled {program.Length} byte(s). Running...");
+        //I am sorry to every developer that exists for slamming a "▶" character into the terminal output, but it is a very nice touch and i will defend that lols.
+        terminal.Append($"▶  Compiled {program.Length} int(s). Running...");
 
         var logger = new WhyTerminalLogger(terminal);
         try
         {
             new VCPU(program, logger, new HostCallLibrary[] { new UnityLib() }, false);
+
+            //Yeah same here, nice touch but damn this sucks to look at in code.
             terminal.Append("■  Done.");
         }
         catch (Exception ex)
@@ -70,16 +73,16 @@ public partial class WhyEditorWindow
 
     /// <summary>
     /// Parses <paramref name="raw"/> through <see cref="ScriptCompiler"/> and extracts
-    /// the bytes from the first <c>.Code</c> / <c>.HEX</c> sub-section.
+    /// the ints from the first <c>.Code</c> / <c>.HEX</c> sub-section.
     /// </summary>
     /// <param name="raw">Clean (prefix-stripped) <c>.why</c> source text.</param>
-    /// <returns>The compiled byte array, or <c>null</c> if parsing throws.</returns>
-    private static byte[] CompileForEditor(string raw)
+    /// <returns>The compiled int array, or <c>null</c> if parsing throws.</returns>
+    private static int[] CompileForEditor(string raw)
     {
         try
         {
             var sections = ScriptCompiler.GetSections(ScriptCompiler.StripComments(raw));
-            var program  = new List<byte>();
+            var program  = new List<int>();
             foreach (var section in sections)
             {
                 if (!section.Item1.Equals("Code", StringComparison.OrdinalIgnoreCase))
@@ -90,14 +93,17 @@ public partial class WhyEditorWindow
                         continue;
                     foreach (var line in sub.Item2)
                     {
-                        for (int i = 0; i + 4 <= line.Length; i++)
+                        for (int i = 0; i < line.Length; i++)
                         {
-                            if (line[i] != '0' || line[i + 1] != 'x')
+                            if (i + 1 >= line.Length || line[i] != '0' || line[i + 1] != 'x')
                                 continue;
-                            string hex = line.Substring(i + 2, 2);
-                            if (byte.TryParse(hex, NumberStyles.HexNumber, null, out byte b))
-                                program.Add(b);
-                            i += 3;
+                            i += 2;
+                            string hex = "";
+                            while (i < line.Length && IsHexDigit(line[i]) && hex.Length < 8)
+                                hex += line[i++];
+                            i--; //compensate for outer i++
+                            if (!string.IsNullOrEmpty(hex) && int.TryParse(hex, NumberStyles.HexNumber, null, out int v))
+                                program.Add(v);
                         }
                     }
                 }
@@ -111,6 +117,9 @@ public partial class WhyEditorWindow
         }
     }
 
+    private static bool IsHexDigit(char c) =>
+        (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+
     /// <summary>
     /// Normalises all hex values on a single line, leaving inline comments untouched.
     /// Single-digit hex is padded to two digits; hex digits are uppercased; the <c>0x</c> prefix stays lowercase.
@@ -122,12 +131,12 @@ public partial class WhyEditorWindow
         string code    = ci >= 0 ? line.Substring(0, ci) : line;
         string comment = ci >= 0 ? line.Substring(ci)    : string.Empty;
 
-        //Pad single-digit hex: 0x5 → 0x05
+        //Pad single-digit hex: 0x5 -> 0x05
         code = s_PadHex.Replace(code, m => "0x0" + m.Groups[1].Value.ToUpper());
 
         //Uppercase hex digits only (keep 'x' lowercase): 0x0a → 0x0A
         //Note tht i have no clue what this means, my regex knowledge is incredibly limited.
-        code = Regex.Replace(code, @"(?<![0-9A-Fa-f])0x([0-9A-Fa-f]{2})(?![0-9A-Fa-f])", m => "0x" + m.Groups[1].Value.ToUpper());
+        code = Regex.Replace(code, @"(?<![0-9A-Fa-f])0x([0-9A-Fa-f]{2,8})(?![0-9A-Fa-f])", m => "0x" + m.Groups[1].Value.ToUpper());
         return code + comment;
     }
 }

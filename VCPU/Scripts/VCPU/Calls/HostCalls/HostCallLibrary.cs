@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using VirtualCPU;
@@ -10,11 +11,11 @@ using VirtualCPU;
 /// </summary>
 public abstract class HostCallLibrary
 {
-    public abstract byte LibraryID { get; }
+    public abstract int LibraryID { get; }
 
-    private readonly IHostCall[] _calls = new IHostCall[256];
+    private readonly Dictionary<int, IHostCall> _calls = new Dictionary<int, IHostCall>();
 
-    public IHostCall GetCall(byte id) => _calls[id];
+    public IHostCall GetCall(int id) => _calls.TryGetValue(id, out var c) ? c : null;
 
     public void Initialize(VCPU vCpu)
     {

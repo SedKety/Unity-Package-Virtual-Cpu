@@ -1,3 +1,4 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 using System.Text;
@@ -147,7 +148,7 @@ public partial class WhyEditorWindow
             if (m.Index > pos)
                 AppendColoured(sb, code.Substring(pos, m.Index - pos), PlainColor);
 
-            if (m.Value.Length != 4)
+            if (m.Value.Length > 10) // more than 8 hex digits overflows int
             {
                 AppendColoured(sb, m.Value, ErrorColor);
                 pos = m.Index + m.Length;
@@ -266,9 +267,9 @@ public partial class WhyEditorWindow
 
         _tooltipScreenPos = mouse;
 
-        if (matches[hoveredIdx].Value.Length != 4)
+        if (matches[hoveredIdx].Value.Length > 10)
         {
-            _hoveredTooltip = "Invalid hex — must be exactly 2 digits (e.g. 0x00). Use Clean to fix.";
+            _hoveredTooltip = "Invalid hex — value overflows int (max 8 hex digits, e.g. 0xFFFFFFFF).";
             return;
         }
 

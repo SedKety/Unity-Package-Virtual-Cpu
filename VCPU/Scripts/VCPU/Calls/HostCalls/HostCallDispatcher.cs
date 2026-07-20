@@ -7,7 +7,7 @@ using VirtualCPU;
 /// </summary>
 public class HostCallDispatcher
 {
-    private readonly Dictionary<byte, HostCallLibrary> _libraries = new Dictionary<byte, HostCallLibrary>();
+    private readonly Dictionary<int, HostCallLibrary> _libraries = new Dictionary<int, HostCallLibrary>();
 
     public HostCallDispatcher(HostCallLibrary[] libraries)
     {
@@ -15,7 +15,7 @@ public class HostCallDispatcher
             _libraries.Add(lib.LibraryID, lib);
     }
 
-    public void Dispatch(VCPU cpu, byte libraryId, byte callId, Action<string> crashHandle)
+    public void Dispatch(VCPU cpu, int libraryId, int callId, Action<string> crashHandle)
     {
         if (!_libraries.TryGetValue(libraryId, out var library))
         {

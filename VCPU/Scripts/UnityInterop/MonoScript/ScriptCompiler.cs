@@ -5,18 +5,13 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Compiles any .why script into the VM bytecode that can be executed by the VCPU.
+/// Compiles any .why script into the VM program that can be executed by the VCPU.
 /// </summary>
 public static class ScriptCompiler
 {
-    /// <summary>
-    /// Compiles the given script into a byte array that can be executed by the VCPU.
-    /// </summary>
-    /// <param name="script">The script to compile.</param>
-    /// <returns>A byte array representing the compiled script in bytecode.</returns>
-    public static byte[] Compile(TextAsset script)
+    public static int[] Compile(TextAsset script)
     {
-        var program = new List<byte>();
+        var program = new List<int>();
 
         var sections = GetSections(StripComments(script.text));
 
@@ -24,14 +19,14 @@ public static class ScriptCompiler
         {
             foreach (var subsection in section.Item2)
             {
-                byte[] compiled = subsection.Item1 switch
+                int[] compiled = subsection.Item1 switch
                 {
-                    Headers.HEX => CompileHex(subsection.Item2),
-                    Headers.ASM => CompileAsm(subsection.Item2),
-                    Headers.DEC => CompileDec(subsection.Item2),
-                    Headers.BIN => CompileBin(subsection.Item2),
+                    Headers.HEX  => CompileHex(subsection.Item2),
+                    Headers.ASM  => CompileAsm(subsection.Item2),
+                    Headers.DEC  => CompileDec(subsection.Item2),
+                    Headers.BIN  => CompileBin(subsection.Item2),
                     Headers.NONE => CompileNone(subsection.Item2),
-                    _ => throw new Exception($"Unknown header type: {subsection.Item1}")
+                    _            => throw new Exception($"Unknown header type: {subsection.Item1}")
                 };
 
                 program.AddRange(compiled);
@@ -41,66 +36,99 @@ public static class ScriptCompiler
         return program.ToArray();
     }
 
-    /// <summary>
-    /// Compiles the given script lines in hexadecimal format into a byte array.
-    /// </summary>
-    /// <param name="lines">The lines of the script in hexadecimal format.</param>
-    /// <returns>The compiled hex in bytecode.</returns>
-    private static byte[] CompileHex(string[] lines)
+    private static int[] CompileHex(string[] lines)
     {
-        var compiledCode = new List<byte>();
+        var compiledCode = new List<int>();
 
         foreach (var line in lines)
         {
             for (int i = 0; i < line.Length; i++)
             {
-                if (i + 1 < line.Length && line[i] == '0' && line[i + 1] == 'x') //Checks for 0x prefix
+                if (i + 1 < line.Length && line[i] == '0' && line[i + 1] == 'x')
                 {
-                    string fullValue = "";
                     i += 2;
-                    for (int j = 0; j < 2; j++) //Write the next two characters into fullValue, which should be the full hex value
-                        fullValue += line[i + j];
+                    string fullValue = "";
+                    while (i < line.Length && IsHexDigit(line[i]) && fullValue.Length < 8)
+                    {
+                        fullValue += line[i];
+                        i++;
+                    }
+                    i--; // compensate for outer i++
 
-                    if (byte.TryParse(fullValue, NumberStyles.HexNumber, null, out byte b))
+                    if (!string.IsNullOrEmpty(fullValue) && int.TryParse(fullValue, NumberStyles.HexNumber, null, out int b))
                         compiledCode.Add(b);
-                    else
-                        Debug.LogError($"Faillure in parsing, dumping line: {line}");
-                    i += 1;
+                    else if (!string.IsNullOrEmpty(fullValue))
+                        Debug.LogError($"Failure in parsing hex value '{fullValue}', dumping line: {line}");
                 }
             }
         }
         return compiledCode.ToArray();
     }
 
-    private static byte[] CompileAsm(string[] lines) { return Array.Empty<byte>(); }
-    private static byte[] CompileDec(string[] lines) { return Array.Empty<byte>(); }
-    private static byte[] CompileBin(string[] lines) { return Array.Empty<byte>(); }
+    private static bool IsHexDigit(char c) =>
+        (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+
+    private static int[] CompileAsm(string[] lines) { return Array.Empty<int>(); }
+
+    private static int[] CompileDec(string[] lines)
+    {
+        var compiledCode = new List<int>();
+        foreach (var line in lines)
+        {
+            foreach (var token in line.Split(new[] { ' ', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (int.TryParse(token, out int value))
+                    compiledCode.Add(value);
+                else
+                    Debug.LogError($"DEC: could not parse '{token}' as integer");
+            }
+        }
+        return compiledCode.ToArray();
+    }
+
+    private static int[] CompileBin(string[] lines)
+    {
+        var compiledCode = new List<int>();
+        foreach (var line in lines)
+        {
+            foreach (var token in line.Split(new[] { ' ', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                try
+                {
+                    compiledCode.Add(Convert.ToInt32(token, 2));
+                }
+                catch
+                {
+                    Debug.LogError($"BIN: could not parse '{token}' as binary");
+                }
+            }
+        }
+        return compiledCode.ToArray();
+    }
 
     /// <summary>
-    /// Is to be replaced with the method of the corrosponding "standard" header type established in the top of the script,
-    /// if not this header is ignored.
+    /// Replaced at compile-time by the method matching the standard header declared in .Headers.
+    /// If no standard header is set, this section is ignored.
     /// </summary>
-    /// <param name="lines"></param>
-    /// <returns></returns>
-    private static byte[] CompileNone(string[] lines) { return Array.Empty<byte>(); }
+    private static int[] CompileNone(string[] lines) { return Array.Empty<int>(); }
 
     /// <summary>
-    /// Returns all the sections and sub sections of the given file
+    /// Returns all the sections and sub-sections of the given file.
     /// </summary>
     /// <returns>Returns (sectionName, (headerType, lines[])[])[]</returns>
     public static Tuple<string, Tuple<Headers, string[]>[]>[] GetSections(string scriptText)
     {
         var sections = new List<Tuple<string, Tuple<Headers, string[]>[]>>();
-        var lines = scriptText.Split('\n');
+        var lines    = scriptText.Split('\n');
 
-        string currentSection = null;
-        bool inHeadersSection = false;
-        var headersDeclarations = new List<string>();
+        string currentSection   = null;
+        bool   inHeadersSection = false;
+        var    headersDeclarations = new List<string>();
 
         Headers defaultSubHeader = Headers.NONE;
         Headers currentSubHeader = Headers.NONE;
-        var currentSubContent = new List<string>();
-        var currentSubsections = new List<Tuple<Headers, string[]>>();
+        var     currentSubContent  = new List<string>();
+        var     currentSubsections = new List<Tuple<Headers, string[]>>();
 
         void FlushSubsection()
         {
@@ -155,10 +183,10 @@ public static class ScriptCompiler
                 }
 
                 FlushSection();
-                currentSection = name;
-                inHeadersSection = name.Equals("headers", StringComparison.OrdinalIgnoreCase);
+                currentSection    = name;
+                inHeadersSection  = name.Equals("headers", StringComparison.OrdinalIgnoreCase);
                 headersDeclarations = new List<string>();
-                currentSubHeader = inHeadersSection ? Headers.NONE : defaultSubHeader;
+                currentSubHeader  = inHeadersSection ? Headers.NONE : defaultSubHeader;
                 currentSubContent = new List<string>();
                 currentSubsections = new List<Tuple<Headers, string[]>>();
             }

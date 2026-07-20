@@ -8,18 +8,18 @@ using VirtualCPU;
 [HostCallLibrary(0x01)]
 public class SysLoadPosition : IHostCall
 {
-    public byte ID => (byte)UnityLibrarySyscall.SysLoadPosition;
+    public int ID => (int)UnityLibrarySyscall.SysLoadPosition;
 
     public void Execute(VCPU cpu)
     {
-        var id  = cpu.Registers.GetRegisterValue((byte)Register.ECX);
+        var id  = cpu.Registers.GetRegisterValue((int)Register.ECX);
         var obj = GameobjectService.GetObject(id);
 
         if (obj == null) return;
 
         var pos = obj.transform.position;
-        cpu.Registers.SetRegisterValue((byte)Register.R0, (byte)Mathf.RoundToInt(pos.x));
-        cpu.Registers.SetRegisterValue((byte)Register.R1, (byte)Mathf.RoundToInt(pos.y));
-        cpu.Registers.SetRegisterValue((byte)Register.R2, (byte)Mathf.RoundToInt(pos.z));
+        cpu.Registers.SetRegisterValue((int)Register.R0, Mathf.RoundToInt(pos.x));
+        cpu.Registers.SetRegisterValue((int)Register.R1, Mathf.RoundToInt(pos.y));
+        cpu.Registers.SetRegisterValue((int)Register.R2, Mathf.RoundToInt(pos.z));
     }
 }

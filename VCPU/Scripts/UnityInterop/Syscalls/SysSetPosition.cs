@@ -8,17 +8,17 @@ using VirtualCPU;
 [HostCallLibrary(0x01)]
 public class SysSetPosition : IHostCall
 {
-    public byte ID => (byte)UnityLibrarySyscall.SysSetPosition;
+    public int ID => (int)UnityLibrarySyscall.SysSetPosition;
 
     public void Execute(VCPU cpu)
     {
         var regs   = cpu.Registers;
         var newPos = new Vector3(
-            regs.GetRegisterValue((byte)Register.R0),
-            regs.GetRegisterValue((byte)Register.R1),
-            regs.GetRegisterValue((byte)Register.R2));
+            regs.GetRegisterValue((int)Register.R0),
+            regs.GetRegisterValue((int)Register.R1),
+            regs.GetRegisterValue((int)Register.R2));
 
-        var id  = regs.GetRegisterValue((byte)Register.ECX);
+        var id  = regs.GetRegisterValue((int)Register.ECX);
         var obj = GameobjectService.GetObject(id);
 
         if (obj != null)

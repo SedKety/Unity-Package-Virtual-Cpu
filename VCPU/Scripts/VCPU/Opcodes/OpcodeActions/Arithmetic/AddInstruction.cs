@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace VirtualCPU.Opcodes
 {
@@ -14,12 +10,9 @@ namespace VirtualCPU.Opcodes
     {
         public string Name => "ADD";
 
-        public bool Accept(byte opcode)
-        {
-            return opcode == (byte)OpCodes.ADD;
-        }
+        public bool Accept(int opcode) => opcode == (int)OpCodes.ADD;
 
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle)
         {
             var lhs = vCpu.Registers.GetRegisterValue(vCpu.Program[vCpu.ProgramCounter + 1]);
             var rhs = vCpu.Registers.GetRegisterValue(vCpu.Program[vCpu.ProgramCounter + 2]);
@@ -28,11 +21,11 @@ namespace VirtualCPU.Opcodes
 
             vCpu.Registers.UpdateFlags(lhs, rhs);
 
-            var result = (byte)(lhs + rhs);
+            var result = lhs + rhs;
             vCpu.Registers.SetRegisterValue(vCpu.Program[vCpu.ProgramCounter + 1], result);
 
             vCpu.Log($"Result of addition: {result} stored in register {vCpu.Program[vCpu.ProgramCounter + 1]}");
-            vCpu.SetProgramCounter((byte)(vCpu.ProgramCounter + 3));
+            vCpu.SetProgramCounter(vCpu.ProgramCounter + 3);
         }
     }
 }

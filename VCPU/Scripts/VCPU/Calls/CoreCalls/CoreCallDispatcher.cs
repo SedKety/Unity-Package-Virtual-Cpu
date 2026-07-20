@@ -1,15 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using VirtualCPU;
 
 /// <summary>
 /// Discovers and dispatches built-in core calls.
-/// All <see cref="ICoreCalls"/> implementations in the VCPU assembly are registered automatically at construction.
+/// All <see cref="ICoreCall"/> implementations in the VCPU assembly are registered automatically at construction.
 /// </summary>
 public class CoreCallDispatcher
 {
-    private readonly ICoreCall[] _calls = new ICoreCall[256];
+    private readonly Dictionary<int, ICoreCall> _calls = new Dictionary<int, ICoreCall>();
 
     public CoreCallDispatcher()
     {
@@ -23,10 +24,9 @@ public class CoreCallDispatcher
         }
     }
 
-    public void Dispatch(VCPU cpu, byte callId, Action<string> crashHandle)
+    public void Dispatch(VCPU cpu, int callId, Action<string> crashHandle)
     {
-        var call = _calls[callId];
-        if (call == null)
+        if (!_calls.TryGetValue(callId, out var call))
         {
             crashHandle($"Unknown core call 0x{callId:X2}");
             return;

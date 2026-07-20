@@ -1,31 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// Represents an instruction that increments the value of a specified register in a virtual CPU.
-    /// The instruction format is as follows:
     /// INC Register
     /// </summary>
     public class IncrementInstruction : OpcodeInstruction
     {
         public string Name => "INC";
-        public bool Accept(byte opcode) => opcode == (byte)OpCodes.INC;
+        public bool Accept(int opcode) => opcode == (int)OpCodes.INC;
 
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle)
         {
             var pc = vCpu.ProgramCounter;
             var registers = vCpu.Registers;
             vCpu.Log($"Incrementing R{vCpu.Program[pc + 1]} CurValue = {registers.GetRegisterValue(vCpu.Program[pc + 1])}");
 
-            registers.SetRegisterValue(vCpu.Program[pc + 1], (byte)(registers.GetRegisterValue(vCpu.Program[pc + 1]) + 1)); 
+            registers.SetRegisterValue(vCpu.Program[pc + 1], registers.GetRegisterValue(vCpu.Program[pc + 1]) + 1);
 
             vCpu.Log($"NewValue = {registers.GetRegisterValue(vCpu.Program[pc + 1])}");
-            vCpu.SetProgramCounter((byte)(pc + 2));
+            vCpu.SetProgramCounter(pc + 2);
         }
     }
 }

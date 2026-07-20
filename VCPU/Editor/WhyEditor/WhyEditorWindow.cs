@@ -30,8 +30,8 @@ public partial class WhyEditorWindow : EditorWindow
     // sub-section directives (.HEX, .ASM, .DEC, .BIN) without taking a dependency
     // on the ScriptCompiler assembly at parse time.
 
-    /// <summary
-    /// >Directive names that introduce a compilation-mode sub-section inside <c>.Code</c>.
+    /// <summary>
+    /// Directive names that introduce a compilation-mode sub-section inside <c>.Code</c>.
     /// </summary>
     private static readonly HashSet<string> SubsectionNames =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HEX", "ASM", "DEC", "BIN" };

@@ -1,32 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// The jump instruction, this allows you to jump to a different adress.
-    /// The instruction format is as follows:
-    /// JMP DestinationAdress
+    /// JMP DestinationAddress
     /// </summary>
     public class JumpInstruction : OpcodeInstruction
     {
         public string Name => "JMP";
 
-        public bool Accept(byte opcode) => opcode == (byte)OpCodes.JMP;
+        public bool Accept(int opcode) => opcode == (int)OpCodes.JMP;
 
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle)
         {
-            var localPC = vCpu.ProgramCounter;
-
-            localPC++; //Go to the next adress which stores the location to jump to
-
-            var destination = vCpu.Program[localPC]; ///Get the location to jump to represented in offset from 0
-
+            var localPC = vCpu.ProgramCounter + 1;
+            var destination = vCpu.Program[localPC];
             vCpu.Log($"Jumping from {localPC} to: {destination}");
-
             vCpu.SetProgramCounter(destination);
         }
     }

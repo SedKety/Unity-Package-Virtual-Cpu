@@ -5,11 +5,11 @@ namespace VirtualCPU.Opcodes
     public class CoreCallInstruction : OpcodeInstruction
     {
         public string Name => "CORECALL";
-        public bool Accept(byte opcode) => opcode == (byte)OpCodes.CORECALL;
+        public bool Accept(int opcode) => opcode == (int)OpCodes.CORECALL;
 
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle)
         {
-            byte callId = vCpu.Program[vCpu.ProgramCounter + 1];
+            int callId = vCpu.Program[vCpu.ProgramCounter + 1];
             vCpu.CoreCallDispatcher.Dispatch(vCpu, callId, crashHandle);
             vCpu.SetProgramCounter(vCpu.ProgramCounter + 2);
         }

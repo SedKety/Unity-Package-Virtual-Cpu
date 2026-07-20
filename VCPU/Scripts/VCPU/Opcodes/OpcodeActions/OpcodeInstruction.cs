@@ -16,7 +16,7 @@ namespace VirtualCPU
         /// </summary>
         /// <param name="opcode">The opcode to check.</param>
         /// <returns>True if the instruction accepts the opcode; otherwise, false.</returns>
-        public bool Accept(byte opcode);
+        public bool Accept(int opcode);
 
         /// <summary>
         /// The logic that is executed within the virtual CPU when the instruction is executed.
@@ -24,6 +24,6 @@ namespace VirtualCPU
         /// <param name="vCpu">The virtual CPU on which to execute the instruction.</param>
         /// <param name="opcode">The opcode of the instruction.</param>
         /// <param name="crashHandle">The action to handle crashes.</param>
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle);
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle);
     }
 }

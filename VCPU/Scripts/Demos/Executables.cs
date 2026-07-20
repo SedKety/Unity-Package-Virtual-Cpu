@@ -5,51 +5,49 @@ namespace VirtualCPU
 {
     public static class Executables
     {
-        public static byte[] SampleProgram = new byte[]
+        public static int[] SampleProgram = new int[]
         {
-            (byte)OpCodes.INC, (byte)Register.R0,
-            (byte)OpCodes.MOV, (byte)Register.R0, 1, (byte)Register.R1, 1,
-            (byte)OpCodes.ADD, (byte)Register.R0, (byte)Register.R1,
-            (byte)OpCodes.CMP, (byte)Register.R1, (byte)Register.R0,
-            (byte)OpCodes.END
+            (int)OpCodes.INC, (int)Register.R0,
+            (int)OpCodes.MOV, (int)Register.R0, 1, (int)Register.R1, 1,
+            (int)OpCodes.ADD, (int)Register.R0, (int)Register.R1,
+            (int)OpCodes.CMP, (int)Register.R1, (int)Register.R0,
+            (int)OpCodes.END
         };
 
-        public static byte[] JumpIfEqualSample = new byte[]
+        public static int[] JumpIfEqualSample = new int[]
         {
-            (byte)OpCodes.LOAD, (byte)Register.R0, 5,
-            (byte)OpCodes.LOAD, (byte)Register.R1, 5,
-            (byte)OpCodes.CMP,  (byte)Register.R0, (byte)Register.R1,
-            (byte)OpCodes.JE,   15,
-            (byte)OpCodes.LOAD, (byte)Register.R2, 0,
-            (byte)OpCodes.END,
-            (byte)OpCodes.LOAD, (byte)Register.R2, 1,
-            (byte)OpCodes.END
+            (int)OpCodes.LOAD, (int)Register.R0, 5,
+            (int)OpCodes.LOAD, (int)Register.R1, 5,
+            (int)OpCodes.CMP,  (int)Register.R0, (int)Register.R1,
+            (int)OpCodes.JE,   15,
+            (int)OpCodes.LOAD, (int)Register.R2, 0,
+            (int)OpCodes.END,
+            (int)OpCodes.LOAD, (int)Register.R2, 1,
+            (int)OpCodes.END
         };
 
-        public static byte[] LoopSample = new byte[]
+        public static int[] LoopSample = new int[]
         {
-            (byte)OpCodes.LOAD, (byte)Register.R0, 0,
-            (byte)OpCodes.LOAD, (byte)Register.R1, 10,
-            (byte)OpCodes.CMP,  (byte)Register.R0, (byte)Register.R1,
-            (byte)OpCodes.JE,   15,
-            (byte)OpCodes.INC,  (byte)Register.R0,
-            (byte)OpCodes.JMP,  6,
-            (byte)OpCodes.END
+            (int)OpCodes.LOAD, (int)Register.R0, 0,
+            (int)OpCodes.LOAD, (int)Register.R1, 10,
+            (int)OpCodes.CMP,  (int)Register.R0, (int)Register.R1,
+            (int)OpCodes.JE,   15,
+            (int)OpCodes.INC,  (int)Register.R0,
+            (int)OpCodes.JMP,  6,
+            (int)OpCodes.END
         };
 
-        // Print 42 as decimal via SysWrite core call
-        // ECX=Decimal, EDX=Register, ESI=R0
-        public static byte[] PrintSample = new byte[]
+        public static int[] PrintSample = new int[]
         {
-            (byte)OpCodes.LOAD,    (byte)Register.R0,  42,
-            (byte)OpCodes.LOAD,    (byte)Register.ECX, (byte)OutputType.Decimal,
-            (byte)OpCodes.LOAD,    (byte)Register.EDX, (byte)SourceType.Register,
-            (byte)OpCodes.LOAD,    (byte)Register.ESI, (byte)Register.R0,
-            (byte)OpCodes.CORECALL, (byte)CoreCallID.SysWrite,
-            (byte)OpCodes.END
+            (int)OpCodes.LOAD,    (int)Register.R0,  42,
+            (int)OpCodes.LOAD,    (int)Register.ECX, (int)OutputType.Decimal,
+            (int)OpCodes.LOAD,    (int)Register.EDX, (int)SourceType.Register,
+            (int)OpCodes.LOAD,    (int)Register.ESI, (int)Register.R0,
+            (int)OpCodes.CORECALL, (int)CoreCallID.SysWrite,
+            (int)OpCodes.END
         };
 
-        public static byte[] OnlyBytes = new byte[]
+        public static int[] OnlyBytes = new int[]
         {
             3, 2, 0, 2, 0, 1, 0, 0
         };

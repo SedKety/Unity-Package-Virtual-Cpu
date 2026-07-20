@@ -7,6 +7,6 @@ using VirtualCPU;
 /// </summary>
 public interface IHostCall
 {
-    byte ID { get; }
+    int ID { get; }
     void Execute(VCPU cpu);
 }

@@ -4,25 +4,24 @@ using VirtualCPU;
 /// <summary>
 /// Host call — spawns a prefab at the position held in R0/R1/R2 and stores the object ID in the destination register.
 /// HOSTCALL 0x01 <see cref="UnityLibrarySyscall.SysSpawn"/>: R0/R1/R2=spawn position X/Y/Z, ECX=prefabId, EDX=destination register index.
-/// Returns: object ID written into the register at index EDX; 0 if spawn failed.
 /// </summary>
 [HostCallLibrary(0x01)]
 public class SysSpawn : IHostCall
 {
-    public byte ID => (byte)UnityLibrarySyscall.SysSpawn;
+    public int ID => (int)UnityLibrarySyscall.SysSpawn;
 
     public void Execute(VCPU cpu)
     {
         var regs = cpu.Registers;
         var pos  = new Vector3(
-            regs.GetRegisterValue((byte)Register.R0),
-            regs.GetRegisterValue((byte)Register.R1),
-            regs.GetRegisterValue((byte)Register.R2));
+            regs.GetRegisterValue((int)Register.R0),
+            regs.GetRegisterValue((int)Register.R1),
+            regs.GetRegisterValue((int)Register.R2));
 
-        var prefabId = regs.GetRegisterValue((byte)Register.ECX);
-        var destReg  = regs.GetRegisterValue((byte)Register.EDX);
+        var prefabId = regs.GetRegisterValue((int)Register.ECX);
+        var destReg  = regs.GetRegisterValue((int)Register.EDX);
 
         var spawned = PrefabService.SpawnObjectPrefab(prefabId, pos, Quaternion.identity);
-        regs.SetRegisterValue(destReg, spawned != null ? prefabId : (byte)0);
+        regs.SetRegisterValue(destReg, spawned != null ? prefabId : 0);
     }
 }

@@ -7,16 +7,16 @@ using VirtualCPU;
 /// </summary>
 public class SysRandom : ICoreCall
 {
-    public byte ID => (byte)CoreCallID.SysRandom;
+    public int ID => (int)CoreCallID.SysRandom;
 
     private static readonly Random _random = new Random();
 
     public void Execute(VCPU cpu)
     {
-        var destReg = cpu.Registers.GetRegisterValue((byte)Register.ECX);
-        var min     = cpu.Registers.GetRegisterValue((byte)Register.EDX);
-        var max     = cpu.Registers.GetRegisterValue((byte)Register.ESI);
+        var destReg = cpu.Registers.GetRegisterValue((int)Register.ECX);
+        var min     = cpu.Registers.GetRegisterValue((int)Register.EDX);
+        var max     = cpu.Registers.GetRegisterValue((int)Register.ESI);
 
-        cpu.Registers.SetRegisterValue(destReg, (byte)_random.Next(min, max + 1));
+        cpu.Registers.SetRegisterValue(destReg, _random.Next(min, max + 1));
     }
 }

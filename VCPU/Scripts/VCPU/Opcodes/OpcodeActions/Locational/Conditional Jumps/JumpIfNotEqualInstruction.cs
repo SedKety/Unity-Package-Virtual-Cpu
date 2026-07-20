@@ -3,15 +3,14 @@ using System;
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// Jump if Not Equal — jumps to the destination if the Zero flag is not set.
-    /// Format: JNE Destination
+    /// JNE Destination
     /// </summary>
     public class JumpIfNotEqualInstruction : OpcodeInstruction
     {
         public string Name => "JNE";
-        public bool Accept(byte opcode) => opcode == (byte)OpCodes.JNE;
+        public bool Accept(int opcode) => opcode == (int)OpCodes.JNE;
 
-        public void Act(VCPU vCpu, byte opcode, Action<string> crashHandle)
+        public void Act(VCPU vCpu, int opcode, Action<string> crashHandle)
         {
             if (vCpu.Registers.FlagsRegister.HasFlag(Flags.Zero))
             {

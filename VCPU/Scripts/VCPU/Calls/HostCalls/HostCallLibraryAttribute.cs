@@ -8,6 +8,6 @@ using System;
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public class HostCallLibraryAttribute : Attribute
 {
-    public byte LibraryID { get; }
-    public HostCallLibraryAttribute(byte libraryID) => LibraryID = libraryID;
+    public int LibraryID { get; }
+    public HostCallLibraryAttribute(int libraryID) => LibraryID = libraryID;
 }
