@@ -3,7 +3,7 @@ using System;
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// JG Destination
+    /// JG operand isRegister
     /// </summary>
     public class JumpIfGreaterInstruction : OpcodeInstruction
     {
@@ -18,11 +18,13 @@ namespace VirtualCPU.Opcodes
             if (!isGreater)
             {
                 vCpu.Log("Not jumping because value is not greater");
-                vCpu.SetProgramCounter(vCpu.ProgramCounter + 2);
+                vCpu.SetProgramCounter(vCpu.ProgramCounter + 3);
                 return;
             }
 
-            var destination = vCpu.Program[vCpu.ProgramCounter + 1];
+            var operand = vCpu.Program[vCpu.ProgramCounter + 1];
+            bool isRegister = vCpu.Program[vCpu.ProgramCounter + 2] != 0;
+            var destination = isRegister ? vCpu.Registers.GetRegisterValue(operand) : operand;
             vCpu.Log($"Value is greater, jumping to: {destination}");
             vCpu.SetProgramCounter(destination);
         }

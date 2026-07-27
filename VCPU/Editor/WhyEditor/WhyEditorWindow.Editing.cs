@@ -30,16 +30,33 @@ public partial class WhyEditorWindow
             new Rect(0, 0, contentW, contentH));
 
         Rect textRect = new Rect(0, 0, contentW, contentH);
-        HandleEnterForIndent();
 
-        Color savedCursor    = GUI.skin.settings.cursorColor;
+        // On Repaint, apply any deferred cursor BEFORE TextArea renders so the cursor
+        // visual is correct even if the previous frame's te.cursorIndex didn't stick.
+        if (_pendingCursor >= 0 && _textAreaControlID > 0 && Event.current.type == EventType.Repaint)
+        {
+            var preTe = GUIUtility.GetStateObject(typeof(TextEditor), _textAreaControlID) as TextEditor;
+            if (preTe != null)
+                preTe.cursorIndex = preTe.selectIndex = _pendingCursor;
+            _pendingCursor = -1;
+        }
+
+        Color savedCursor = GUI.skin.settings.cursorColor;
         Color savedSelection = GUI.skin.settings.selectionColor;
-        GUI.skin.settings.cursorColor    = Color.white;
+        GUI.skin.settings.cursorColor = Color.white;
         GUI.skin.settings.selectionColor = new Color(0.25f, 0.50f, 0.90f, 0.40f);
         GUI.SetNextControlName(TextAreaControlName);
         string edited = GUI.TextArea(textRect, _content, _editStyle);
-        GUI.skin.settings.cursorColor    = savedCursor;
+        GUI.skin.settings.cursorColor = savedCursor;
         GUI.skin.settings.selectionColor = savedSelection;
+
+        // Capture the TextArea's control ID while we still can — GUIUtility.keyboardControl
+        // may drop to 0 after Enter if Unity clears focus internally.
+        {
+            int kbCtrl = GUIUtility.keyboardControl;
+            if (kbCtrl > 0)
+                _textAreaControlID = kbCtrl;
+        }
 
         if (edited.IndexOf('\r') >= 0)
             edited = edited.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -48,15 +65,20 @@ public partial class WhyEditorWindow
 
         if (edited != _content)
         {
+            _pendingCursor = -1;
             PushUndo();
             string formatted = ApplyAutoFormatting(_content, edited, out int newCursor);
-            if (newCursor >= 0)
+
+            // Use stored control ID in case GUIUtility.keyboardControl is now 0.
+            int ctrlID = _textAreaControlID > 0 ? _textAreaControlID : GUIUtility.keyboardControl;
+            var te = GUIUtility.GetStateObject(typeof(TextEditor), ctrlID) as TextEditor;
+            if (te != null)
             {
-                var te = GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) as TextEditor;
-                if (te != null)
+                te.text = formatted;
+                if (newCursor >= 0)
                 {
-                    te.text = formatted;
                     te.cursorIndex = te.selectIndex = newCursor;
+                    _pendingCursor = newCursor;
                 }
             }
             _content = formatted;
@@ -83,21 +105,24 @@ public partial class WhyEditorWindow
             return;
         if (e.keyCode != KeyCode.Return && e.keyCode != KeyCode.KeypadEnter)
             return;
-        if (GUIUtility.keyboardControl == 0)
+        if (GUI.GetNameOfFocusedControl() != TextAreaControlName)
             return;
 
         var te = GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) as TextEditor;
-        if (te == null || te.text != _content)
+        if (te == null)
             return;
 
-        int    cursor = Mathf.Clamp(te.cursorIndex, 0, _content.Length);
-        string indent = ComputeIndent(_content.Substring(0, cursor));
+        // Use _content (not te.text) as the authoritative source — te.text can lag when
+        // ApplyAutoFormatting rewrites _content mid-frame, causing te.text != _content.
+        int cursor = Mathf.Clamp(te.cursorIndex, 0, _content.Length);
+        string indent = ComputeNextLineIndent(_content, cursor);
         if (indent.Length == 0)
             return;
 
         PushUndo();
+        _content = _content.Substring(0, cursor) + "\n" + indent + _content.Substring(cursor);
         int newCursor = cursor + 1 + indent.Length;
-        _content = te.text = _content.Substring(0, cursor) + "\n" + indent + _content.Substring(cursor);
+        te.text = _content;
         te.cursorIndex = te.selectIndex = newCursor;
         e.Use();
     }
@@ -180,7 +205,7 @@ public partial class WhyEditorWindow
 
         if (inserted == '\n')
         {
-            string indent = ComputeIndent(after.Substring(0, insertPos));
+            string indent = ComputeNextLineIndent(after, insertPos);
             if (indent.Length == 0)
                 return after;
             newCursorPos = insertPos + 1 + indent.Length;
@@ -204,7 +229,7 @@ public partial class WhyEditorWindow
                 {
                     // A directive sits one indent level above its content.
                     // ComputeIndent gives the content-level indent, so subtract 3.
-                    int directiveLen  = Math.Max(0, ComputeIndent(after.Substring(0, lineStart)).Length - 3);
+                    int directiveLen = Math.Max(0, ComputeIndent(after.Substring(0, lineStart)).Length - 3);
                     int currentIndent = insertPos - lineStart;
                     if (currentIndent > directiveLen)
                     {
@@ -238,18 +263,18 @@ public partial class WhyEditorWindow
     {
         if (string.IsNullOrEmpty(text))
             return text;
-        var  lines   = text.Split('\n');
-        bool inSec   = false, inHeaders = false, inSub = false;
-        var  sb      = new StringBuilder(text.Length + (add ? lines.Length * 6 : 0));
+        var lines = text.Split('\n');
+        bool inSec = false, inHeaders = false, inSub = false;
+        var sb = new StringBuilder(text.Length + (add ? lines.Length * 6 : 0));
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
                 sb.Append('\n');
-            string line    = lines[i];
+            string line = lines[i];
             string trimmed = line.TrimStart();
-            bool   isDir   = trimmed.StartsWith(".");
-            string name    = isDir ? SectionName(trimmed) : null;
-            bool   isSub   = name != null && SubsectionNames.Contains(name);
+            bool isDir = trimmed.StartsWith(".");
+            string name = isDir ? SectionName(trimmed) : null;
+            bool isSub = name != null && SubsectionNames.Contains(name);
 
             int prefix = 0;
             if (!isDir && inSec)
@@ -284,8 +309,8 @@ public partial class WhyEditorWindow
                 }
                 else
                 {
-                    inSec    = true;
-                    inSub    = false;
+                    inSec = true;
+                    inSub = false;
                     inHeaders = "headers".Equals(name, StringComparison.OrdinalIgnoreCase);
                 }
             }
@@ -312,10 +337,65 @@ public partial class WhyEditorWindow
     private static string SectionName(string trimmedLine)
     {
         string name = trimmedLine.Length > 1 ? trimmedLine.Substring(1) : "";
-        int    ci   = name.IndexOf(';');
+        int ci = name.IndexOf(';');
         if (ci >= 0)
             name = name.Substring(0, ci);
         return name.Trim();
+    }
+
+    /// <summary>
+    /// Computes the indent string to place on the new line after pressing Enter at <paramref name="cursor"/>.
+    /// For section/subsection directive lines (starting with <c>.</c>) the context-appropriate
+    /// indent is derived from <see cref="ComputeIndent"/>; for all other lines the current
+    /// line's leading spaces are matched.
+    /// </summary>
+    private static string ComputeNextLineIndent(string text, int cursor)
+    {
+        int lineStart = cursor > 0 ? (text.LastIndexOf('\n', cursor - 1) + 1) : 0;
+
+        // Cursor is at the very start of a line (empty line or no text yet on this line).
+        // Fall back to the previous line so pressing Enter on a blank/trailing line
+        // still inherits the right indentation level.
+        if (lineStart >= cursor)
+        {
+            if (lineStart == 0)
+                return string.Empty;
+            int prevEnd   = lineStart - 1;
+            int prevStart = prevEnd > 0 ? (text.LastIndexOf('\n', prevEnd - 1) + 1) : 0;
+            int prevWs    = prevStart;
+            while (prevWs < prevEnd && prevWs < text.Length && text[prevWs] == ' ')
+                prevWs++;
+            return prevWs > prevStart ? text.Substring(prevStart, prevWs - prevStart) : string.Empty;
+        }
+
+        int ws = lineStart;
+        while (ws < cursor && ws < text.Length && text[ws] == ' ')
+            ws++;
+
+        string lineContent = text.Substring(ws, Math.Max(0, cursor - ws)).TrimEnd();
+
+        if (lineContent.StartsWith("."))
+        {
+            // After a directive, ask ComputeIndent what the section context demands.
+            int lineEnd = text.IndexOf('\n', lineStart);
+            int include = lineEnd >= 0 ? lineEnd : text.Length;
+            return ComputeIndent(text.Substring(0, include));
+        }
+
+        return ws > lineStart ? text.Substring(lineStart, ws - lineStart) : string.Empty;
+    }
+
+    /// <summary>
+    /// Returns the leading spaces of the line that contains position <paramref name="pos"/> in <paramref name="text"/>.
+    /// Used to replicate the current line's indentation on a new line after Enter.
+    /// </summary>
+    private static string CurrentLineIndent(string text, int pos)
+    {
+        int lineStart = pos > 0 ? (text.LastIndexOf('\n', pos - 1) + 1) : 0;
+        int ws = lineStart;
+        while (ws < pos && ws < text.Length && text[ws] == ' ')
+            ws++;
+        return text.Substring(lineStart, ws - lineStart);
     }
 
     /// <summary>

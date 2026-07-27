@@ -31,7 +31,7 @@ public partial class WhyEditorWindow
     /// Prompts for a save location, creates a minimal boilerplate <c>.why</c> file,
     /// and immediately saves it to disk.
     /// </summary>
-    private void NewFile()
+    private void NewFile(string template = null)
     {
         if (IsDirty && !ConfirmDiscard())
             return;
@@ -39,7 +39,7 @@ public partial class WhyEditorWindow
         if (string.IsNullOrEmpty(path))
             return;
         _filePath        = path;
-        _content         = AddVisualPrefixes(".Headers\n.HEX\n\n.Code\n0x00 ;Exit");
+        _content         = AddVisualPrefixes(template ?? WhyFileCreator.TemplateEmpty);
         _savedContent    = string.Empty;
         _pickedAsset     = null;
         _filePickerError = null;

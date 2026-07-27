@@ -18,6 +18,7 @@ namespace VirtualCPU
 
         private Stack<int> _stack = new Stack<int>();
         private uint _stackSize;
+        private bool _stackProtect;
         #endregion
 
         #region Methods
@@ -27,13 +28,14 @@ namespace VirtualCPU
         private string StackflowMessage(bool isOverFlow) => $"Stack {(isOverFlow ? "overflow" : "underflow")}: Attempted to {(isOverFlow ? "push onto" : "pop from")} a {(isOverFlow ? "full" : "empty")} stack.";
         #endregion
 
-        public Memory(int[] heapMem, uint stackSize, VCPU vCpu, Action<string> crashHandle)
+        public Memory(int[] heapMem, uint stackSize, VCPU vCpu, Action<string> crashHandle, bool stackProtect = false)
         {
             _heapMemory = heapMem;
             _vCPU = vCpu;
             _crashHandle = crashHandle;
             _stack = new Stack<int>((int)stackSize);
             _stackSize = stackSize;
+            _stackProtect = stackProtect;
         }
 
         #region Stack
@@ -43,7 +45,7 @@ namespace VirtualCPU
         {
             if (_stack.Count >= _stackSize)
             {
-                _crashHandle(StackflowMessage(true));
+                if (!_stackProtect) _crashHandle(StackflowMessage(true));
                 return;
             }
             _stack.Push(value);
@@ -53,7 +55,7 @@ namespace VirtualCPU
         {
             if (_stack.Count == 0)
             {
-                _crashHandle(StackflowMessage(false));
+                if (!_stackProtect) _crashHandle(StackflowMessage(false));
                 return 0;
             }
             return _stack.Peek();
@@ -64,7 +66,7 @@ namespace VirtualCPU
         {
             if (_stack.Count == 0)
             {
-                _crashHandle(StackflowMessage(false));
+                if (!_stackProtect) _crashHandle(StackflowMessage(false));
                 return 0;
             }
             return _stack.Pop();

@@ -11,7 +11,7 @@ using UnityEditor;
 /// Create an asset (recommended in a Resources folder named "PrefabServiceData" so it is auto-loaded at runtime),
 /// or assign the asset to PrefabService.Data at runtime.
 /// </summary>
-[CreateAssetMenu(fileName = "PrefabServiceData", menuName = "VCPU/Prefab Service Data")]
+[CreateAssetMenu(fileName = "PrefabServiceData", menuName = "WHY/Services/Prefab Service Data")]
 public class PrefabServiceData : ScriptableObject
 {
     [System.Serializable]

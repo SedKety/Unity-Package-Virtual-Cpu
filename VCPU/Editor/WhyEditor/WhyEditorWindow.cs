@@ -21,20 +21,57 @@ using UnityEngine;
 ///   <item><c>WhyEditorWindow.Editing.cs</c>  — editor area, undo/redo, auto-formatting, indent, prefix helpers</item>
 ///   <item><c>WhyEditorWindow.Syntax.cs</c>   — syntax highlighting, hover tooltips</item>
 ///   <item><c>WhyEditorWindow.FileOps.cs</c>  — file load / save / delete, path utilities</item>
-///   <item><c>WhyEditorWindow.Compile.cs</c>  — compile, run, clean/normalise</item>
+///   <item><c>WhyEditorWindow.Assemble.cs</c>  — compile, run, clean/normalise</item>
 /// </list>
 /// </remarks>
 public partial class WhyEditorWindow : EditorWindow
 {
     // Mirrors the Headers enum values (minus NONE) so prefix helpers can identify
     // sub-section directives (.HEX, .ASM, .DEC, .BIN) without taking a dependency
-    // on the ScriptCompiler assembly at parse time.
+    // on the ScriptAssembler assembly at parse time.
 
     /// <summary>
     /// Directive names that introduce a compilation-mode sub-section inside <c>.Code</c>.
     /// </summary>
     private static readonly HashSet<string> SubsectionNames =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HEX", "ASM", "DEC", "BIN" };
+
+    /// <summary>
+    /// All valid <c>#</c>-prefixed directive names recognised inside a <c>.Headers</c> section.
+    /// </summary>
+    private static readonly HashSet<string> HeaderDirectiveNames =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "HEX", "ASM", "DEC", "BIN",
+            "MEMSIZE", "STACKSIZE", "ENTRY", "TIMEOUT", "TICK_RATE", "LOOP",
+            "DEBUG", "STRICT", "DUMP_ON_CRASH", "NO_HOSTCALL",
+            "PROFILE", "DUMP_ON_EXIT", "STACK_PROTECT",
+        };
+
+    /// <summary>
+    /// Hover descriptions for each <c>#</c>-prefixed directive.
+    /// </summary>
+    private static readonly Dictionary<string, string> HeaderDirectiveDescriptions =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "HEX",          "Format: read the code section as hexadecimal values (e.g. 0x05, 0xFF)." },
+            { "ASM",          "Format: read the code section as assembly-like instructions (e.g. LOAD R0, 72)." },
+            { "DEC",          "Format: read the code section as decimal integers (e.g. 5, 255)." },
+            { "BIN",          "Format: read the code section as binary values (e.g. 00000101, 11111111)." },
+            { "MEMSIZE",      "Heap memory size in ints. Default: 16." },
+            { "STACKSIZE",    "Maximum stack depth in ints. Default: 8." },
+            { "ENTRY",        "Program counter start address. Default: 0." },
+            { "TIMEOUT",      "Crash after N instructions without halting. 0 = no limit." },
+            { "TICK_RATE",    "Instructions to execute per frame when running via Step(). 0 = run to completion in one frame." },
+            { "LOOP",         "Total run count. 0 = run once, N = run N times, 2147483647 = loop forever." },
+            { "DEBUG",        "Enable verbose instruction logging." },
+            { "STRICT",       "Crash on an unknown opcode instead of silently skipping it." },
+            { "DUMP_ON_CRASH","Dump registers, flags, and memory when the program crashes." },
+            { "NO_HOSTCALL",  "Disable all HOSTCALL instructions (sandbox mode)." },
+            { "PROFILE",      "Log instruction count and elapsed time after execution ends." },
+            { "DUMP_ON_EXIT", "Dump registers, flags, and memory on a clean (non-crash) exit." },
+            { "STACK_PROTECT","Clamp on stack overflow/underflow instead of crashing." },
+        };
 
     /// <summary>
     /// Absolute path of the file currently open in the editor, or <c>null</c> for unsaved new files.
@@ -52,25 +89,31 @@ public partial class WhyEditorWindow : EditorWindow
     /// </summary>
     private string _savedContent = string.Empty;
 
-    private Vector2   _scroll;
+    private Vector2 _scroll;
     private TextAsset _pickedAsset;
-    private string    _filePickerError;
-    private GUIStyle  _editStyle;
-    private GUIStyle  _displayStyle;
-    private GUIStyle  _tooltipTextStyle;
-    private GUIStyle  _tooltipMeasureStyle;
-    private GUIStyle  _errorLabelStyle;
-    private float     _charWidth;
-    private float     _lineHeight;
+    private string _filePickerError;
+    private GUIStyle _editStyle;
+    private GUIStyle _displayStyle;
+    private GUIStyle _tooltipTextStyle;
+    private GUIStyle _tooltipMeasureStyle;
+    private GUIStyle _errorLabelStyle;
+    private float _charWidth;
+    private float _lineHeight;
     private Texture2D _clearTex;
-    private string    _hoveredTooltip;
-    private Vector2   _tooltipScreenPos;
-    private Rect      _editorRect;
+    private string _hoveredTooltip;
+    private Vector2 _tooltipScreenPos;
+    private Rect _editorRect;
 
     private List<string> _undoStack = new List<string>();
     private List<string> _redoStack = new List<string>();
 
     private const int MaxUndoDepth = 200;
+
+    // Cursor-sync helpers: store the TextArea's control ID so we can still target
+    // its TextEditor even if GUIUtility.keyboardControl drops to 0 after Enter,
+    // and store a deferred cursor to apply on the next Repaint before TextArea renders.
+    private int _textAreaControlID = -1;
+    private int _pendingCursor = -1;
 
     /// <summary>
     /// Matches single-digit hex values (e.g. <c>0x0</c>, <c>0xA</c>) so <c>CleanContent</c>
@@ -79,15 +122,15 @@ public partial class WhyEditorWindow : EditorWindow
     private static readonly Regex s_PadHex =
         new Regex(@"(?<![0-9A-Fa-f])0x([0-9A-Fa-f])(?![0-9A-Fa-f])", RegexOptions.Compiled);
 
-    private int  _fontSize          = 13;
+    private int _fontSize = 13;
     private bool _stylesNeedRebuild = false;
 
-    private const int    MinFontSize          = 8;
-    private const int    MaxFontSize          = 36;
-    private const int    DefaultFontSize      = 13;
-    private const string TextAreaControlName  = "_whyed_";
+    private const int MinFontSize = 8;
+    private const int MaxFontSize = 36;
+    private const int DefaultFontSize = 13;
+    private const string TextAreaControlName = "_whyed_";
 
-    private bool   IsDirty      => _content != _savedContent;
+    private bool IsDirty => _content != _savedContent;
     private string DisplayTitle =>
         (string.IsNullOrEmpty(_filePath) ? "Untitled" : Path.GetFileName(_filePath))
         + (IsDirty ? "*" : string.Empty);
@@ -145,15 +188,15 @@ public partial class WhyEditorWindow : EditorWindow
         SetTextColor(_displayStyle, new Color(0.85f, 0.85f, 0.85f));
 
         var measure = new GUIStyle(EditorStyles.textArea) { font = mono, fontSize = _fontSize, wordWrap = false };
-        _charWidth  = measure.CalcSize(new GUIContent("WWWWWWWWWW")).x / 10f;
+        _charWidth = measure.CalcSize(new GUIContent("WWWWWWWWWW")).x / 10f;
         _lineHeight = measure.CalcHeight(new GUIContent("A\nA"), 10000f) - measure.CalcHeight(new GUIContent("A"), 10000f);
 
-        if (_charWidth  <= 0)
-            _charWidth  = 8f;
+        if (_charWidth <= 0)
+            _charWidth = 8f;
         if (_lineHeight <= 0)
             _lineHeight = 16f;
 
-        _tooltipTextStyle = new GUIStyle(EditorStyles.label) { wordWrap = true, padding = new RectOffset(6, 6, 4, 4), fontSize = 12 };
+        _tooltipTextStyle = new GUIStyle(EditorStyles.label) { wordWrap = true, padding = new RectOffset(6, 6, 4, 4), fontSize = _fontSize };
         _tooltipTextStyle.normal.textColor = new Color(0.90f, 0.90f, 0.90f);
         _tooltipMeasureStyle = new GUIStyle(_tooltipTextStyle) { wordWrap = false };
 
@@ -163,7 +206,7 @@ public partial class WhyEditorWindow : EditorWindow
 
     static void SetAllStates(GUIStyle s, Color tc, Texture2D bg)
     {
-        s.normal.textColor  = s.focused.textColor  = s.hover.textColor  = s.active.textColor  = tc;
+        s.normal.textColor = s.focused.textColor = s.hover.textColor = s.active.textColor = tc;
         s.normal.background = s.focused.background = s.hover.background = s.active.background = bg;
         s.normal.scaledBackgrounds = s.focused.scaledBackgrounds = s.hover.scaledBackgrounds = s.active.scaledBackgrounds = null;
     }
@@ -203,14 +246,24 @@ public partial class WhyEditorWindow : EditorWindow
     {
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
 
-        if (GUILayout.Button("New",  EditorStyles.toolbarButton, GUILayout.Width(40)))
-            NewFile();
+        Rect newRect = GUILayoutUtility.GetRect(new GUIContent("New"), EditorStyles.toolbarDropDown, GUILayout.Width(48));
+        if (GUI.Button(newRect, "New", EditorStyles.toolbarDropDown))
+        {
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Empty"),         false, () => NewFile(WhyFileCreator.TemplateEmpty));
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("HEX — Hello World"), false, () => NewFile(WhyFileCreator.TemplateHex));
+            menu.AddItem(new GUIContent("ASM — Hello World"), false, () => NewFile(WhyFileCreator.TemplateAsm));
+            menu.AddItem(new GUIContent("DEC — Hello World"), false, () => NewFile(WhyFileCreator.TemplateDec));
+            menu.AddItem(new GUIContent("BIN — Hello World"), false, () => NewFile(WhyFileCreator.TemplateBin));
+            menu.DropDown(newRect);
+        }
         if (GUILayout.Button("Open", EditorStyles.toolbarButton, GUILayout.Width(44)))
             OpenFile();
 
         using (new EditorGUI.DisabledScope(!IsDirty))
         {
-            if (GUILayout.Button("Save",    EditorStyles.toolbarButton, GUILayout.Width(40)))
+            if (GUILayout.Button("Save", EditorStyles.toolbarButton, GUILayout.Width(40)))
                 SaveFile();
             if (GUILayout.Button("Discard", EditorStyles.toolbarButton, GUILayout.Width(54)))
                 DiscardChanges();
@@ -275,8 +328,8 @@ public partial class WhyEditorWindow : EditorWindow
     /// </summary>
     private void HandleZoom()
     {
-        Event e    = Event.current;
-        bool  ctrl = e.control || e.command;
+        Event e = Event.current;
+        bool ctrl = e.control || e.command;
         if (!ctrl)
             return;
 

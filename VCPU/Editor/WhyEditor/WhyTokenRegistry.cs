@@ -18,11 +18,11 @@ public class WhyTokenEntry
 
 /// <summary>
 /// ScriptableObject registry mapping opcode hex values to editor display metadata.
-/// Create via <b>Assets → Create → Why → Token Registry</b>, then right-click the asset
+/// Create via <b>Assets → Create → WHY → Token Registry</b>, then right-click the asset
 /// and choose <b>Populate Default Tokens</b> to pre-fill all built-in opcodes.
 /// Add or edit entries directly in the Inspector — no code changes required.
 /// </summary>
-[CreateAssetMenu(fileName = "WhyTokenRegistry", menuName = "Why/Token Registry")]
+[CreateAssetMenu(fileName = "WhyTokenRegistry", menuName = "WHY/Token Registry")]
 public class WhyTokenRegistry : ScriptableObject
 {
     public WhyTokenEntry[] tokens = new WhyTokenEntry[0];

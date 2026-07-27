@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c428b5d9e90881444890b12c3cdd7ea5, type: 3}
+  m_Name: AssemblyTokenHolder
+  m_EditorClassIdentifier: UnityInterop::AssemblyTokenHolder
+  _tokens:
+  - Token: END
+    operands: []
+    InstructionColor: {r: 1, g: 0, b: 0, a: 1}
+    Description: Halt execution.
+  - Token: NOP
+    operands: []
+    InstructionColor: {r: 0.62, g: 0.62, b: 0.62, a: 1}
+    Description: No operation.
+  - Token: CORECALL
+    operands:
+    - {fileID: 11400000, guid: dbf6e73661ccd4044b8267fd97722381, type: 2}
+    InstructionColor: {r: 0.3, g: 0.9, b: 0.4, a: 1}
+    Description: Call a built-in core call (e.g. SysWrite = 1).
+  - Token: HOSTCALL
+    operands:
+    - {fileID: 11400000, guid: 557578fe2a1d56841b01c3cd6e4c00ec, type: 2}
+    - {fileID: 11400000, guid: cf8c75603e1664545829597c1e3be317, type: 2}
+    InstructionColor: {r: 0.2, g: 0.78, b: 0.65, a: 1}
+    Description: Call a host-library function.
+  - Token: LOAD
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    - {fileID: 11400000, guid: dbf6e73661ccd4044b8267fd97722381, type: 2}
+    InstructionColor: {r: 0.95, g: 0.88, b: 0.3, a: 1}
+    Description: Load an immediate value into a register.
+  - Token: JMP
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 1, g: 0.48, b: 0.18, a: 1}
+    Description: Unconditional jump to address or register.
+  - Token: MOV
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 0.4, g: 0.85, b: 1, a: 1}
+    Description: "Move source \u2192 destination (register or memory)."
+  - Token: JNE
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 1, g: 0.6, b: 0.3, a: 1}
+    Description: Jump if not equal.
+  - Token: JE
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 1, g: 0.65, b: 0.38, a: 1}
+    Description: Jump if equal.
+  - Token: JL
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 1, g: 0.54, b: 0.22, a: 1}
+    Description: Jump if less.
+  - Token: JG
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    - {fileID: 11400000, guid: 3616e6372af1fd749a338e26218d308c, type: 2}
+    InstructionColor: {r: 1, g: 0.7, b: 0.44, a: 1}
+    Description: Jump if greater.
+  - Token: ADD
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    InstructionColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+    Description: Add two registers (result in first).
+  - Token: CMP
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    InstructionColor: {r: 0.85, g: 0.35, b: 0.85, a: 1}
+    Description: Compare two registers, set flags.
+  - Token: SUB
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    InstructionColor: {r: 1, g: 0.48, b: 0.48, a: 1}
+    Description: Subtract second register from first.
+  - Token: INC
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    InstructionColor: {r: 0.55, g: 0.92, b: 0.55, a: 1}
+    Description: Increment a register by 1.
+  - Token: DEC
+    operands:
+    - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
+    InstructionColor: {r: 0.9, g: 0.55, b: 0.55, a: 1}
+    Description: Decrement a register by 1.

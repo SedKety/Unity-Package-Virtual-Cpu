@@ -1,26 +1,19 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+
+using Debug = UnityEngine.Debug;
 
 namespace VirtualCPU
 {
     public class VCPU
     {
         #region Variables
-        /// <summary>
-        /// Memory this virtual CPU has.
-        /// </summary>
-        public ref Memory Memory => ref _memory;
-        private Memory _memory;
 
         /// <summary>
-        /// Provides methods to get and set the values of the registers, and to set and get the flags register,
-        /// </summary>
-        public ref RegisterManager Registers => ref _registers;
-        private RegisterManager _registers;
-
-        /// <summary>
-        /// The program in bytes that is being executed, 
+        /// The program in ints that is being executed,
         /// this is set when the Run method is called, and is used to fetch instructions and data from it.
         /// </summary>
         private int[] _program = new int[0];
@@ -30,10 +23,46 @@ namespace VirtualCPU
         /// </summary>
         public ref int[] Program => ref _program;
 
-        private OpcodeInstruction[] _opcodeActions;
+        /// <summary>
+        /// The program counter, this is used to keep track of the current instruction being executed in the program.
+        /// </summary>
+        private int _pc = 0;
 
         /// <summary>
-        /// The core call dispatcher, this is used to dispatch core calls to the appropriate methods, 
+        /// The index of the current instruction being executed in the program,
+        /// this is used to fetch instructions and data from the program, and is incremented after each instruction is executed.
+        /// </summary>
+        public int ProgramCounter => _pc;
+
+        /// <summary>
+        /// How many instructions are executed per <see cref="Step"/> call.
+        /// Read by the runner to drive its coroutine.
+        /// </summary>
+        /// <remarks>0 will execute all instructions at once via the autoRun path, blocking the main thread.</remarks>
+        public int TickRate => _tickRate;
+        private int _tickRate;
+
+        /// <summary>
+        /// How many times the program runs in total.
+        /// 0 = run once, N = run N times, <see cref="VCPUSettings.LoopForever"/> = loop forever.
+        /// </summary>
+        public int Loops => _loops;
+        private int _loops;
+
+        /// <summary>
+        /// Tracks how many times <see cref="Restart"/> has been called.
+        /// </summary>
+        private int _loopCount;
+
+        /// <summary>
+        /// The ISA of the VCPU, this is used to fetch the appropriate instruction for the current instruction being executed in the program.
+        /// </summary>
+        private OpcodeInstruction[] _opcodeActions;
+
+        #region Dispatchers
+
+        /// <summary>
+        /// The core call dispatcher, this is used to dispatch core calls to the appropriate methods,
         /// and is initialized in the constructor with the default core calls (SysRead, SysWrite, SysRandom).
         /// </summary>
         public CoreCallDispatcher CoreCallDispatcher => _coreCallDispatcher;
@@ -46,69 +75,154 @@ namespace VirtualCPU
         public HostCallDispatcher HostCallDispatcher => _hostCallDispatcher;
         private HostCallDispatcher _hostCallDispatcher;
 
-        /// <summary>
-        /// The program counter, this is used to keep track of the current instruction being executed in the program,
-        /// </summary>
-        private int _pc = 0;
+        #endregion
 
         /// <summary>
-        /// The index of the current instruction being executed in the program, 
-        /// this is used to fetch instructions and data from the program, and is incremented after each instruction is executed.
+        /// Memory this virtual CPU has.
         /// </summary>
-        public int ProgramCounter => _pc;
+        public ref Memory Memory => ref _memory;
+        private Memory _memory;
 
         /// <summary>
-        /// This decides how many instructions are executed each second, 
-        /// this is used to control the speed of the program execution, and is set in the constructor.
+        /// Provides methods to get and set the values of the registers, and to set and get the flags register.
         /// </summary>
-        /// <remarks>0 will execute all instructions at once, note that this blocks the main thread.</remarks>
-        private int _tickRate = 0;
+        public ref RegisterManager Registers => ref _registers;
+        private RegisterManager _registers;
+
+        #region Logging
 
         private bool _loggingEnabled = true;
-
         private bool _forceQuit = false;
 
         /// <summary>
-        /// Handle to crash the program in 
+        /// Handle to crash the program.
         /// </summary>
         private Action<string> _crashHandle;
 
         /// <summary>
-        /// A logger to log messages, this is used for the "console" output in the program,
+        /// A logger to log messages, this is used for the "console" output in the program.
         /// </summary>
         private ILogger _logger;
 
         private bool _dumpRegisters;
         private bool _dumpMemory;
         private bool _dumpFlags;
+
+        #endregion
+
+        /// <summary>
+        /// Label name -> absolute bytecode address, as produced by the assembler.
+        /// Returns an empty dictionary if the program was created without labels.
+        /// </summary>
+        public IReadOnlyDictionary<string, int> Labels => _labels;
+        private IReadOnlyDictionary<string, int> _labels;
+
+        #region Pragmas
+        /// <summary>
+        /// Whether the program has crashed.
+        /// </summary>
+        private bool _crashed;
+
+        /// <summary>
+        /// Whether the program is running in strict mode, which will crash on unknown opcodes instead of skipping them.
+        /// </summary>
+        private bool _strict;
+
+        /// <summary>
+        /// The maximum number of instructions to execute before timing out and crashing the program.
+        /// </summary>
+        private int _timeout;
+
+        /// <summary>
+        /// Whether host calls are disabled for this instance.
+        /// </summary>
+        private bool _noHostCall;
+
+        /// <summary>
+        /// Whether to dump the program state (registers, memory, flags) on crash.
+        /// </summary>
+        private bool _dumpOnCrash;
+
+        /// <summary>
+        /// Whether to dump the program state (registers, memory, flags) on exit (non-crash).
+        /// </summary>
+        private bool _dumpOnExit;
+
+        /// <summary>
+        /// Whether to profile the program execution, which will log the number of instructions executed and the time taken to execute them.
+        /// </summary>
+        private bool _profile;
+
+        /// <summary>
+        /// The number of instructions executed so far, used for profiling and timeout.
+        /// </summary>
+        private int _instructionCount;
+
+        /// <summary>
+        /// Determines whether the program has already dumped its state on completion (either crash or exit).
+        /// </summary>
+        private bool _dumpedOnComplete;
+
+        /// <summary>
+        /// A stopwatch to measure the time taken to execute the program, used for profiling.
+        /// </summary>
+        private Stopwatch _profileWatch;
+
+        /// <summary>
+        /// Entry point of the program, this is set when the Run method is called, and is used to fetch instructions and data from the program.
+        /// </summary>
+        private int _entryPoint;
+
+        /// <summary>
+        /// Whether host calls are disabled for this instance.
+        /// </summary>
+        public bool NoHostCall => _noHostCall;
+        #endregion
+
+        /// <summary>
+        /// Whether the program has finished executing (completed or crashed).
+        /// </summary>
+        public bool IsComplete => _forceQuit || _pc >= _program.Length;
+
         #endregion
 
         #region Methods
-        public VCPU(int[] programArray,
-            ILogger logger,
-            HostCallLibrary[] hostLibraries = null,
-            bool loggingEnabled = true,
-            bool dumpRegisters = false,
-            bool dumpMemory = false,
-            bool dumpFlags = false,
-            uint memorySize = 16,
-            uint stackSize = 8,
-            uint entryPoint = 0,
-            uint tickRate = 60
-            )
+
+        public VCPU(int[] programArray, ILogger logger, VCPUSettings settings = default)
         {
-            _loggingEnabled = loggingEnabled;
+            uint memSize = settings.MemorySize > 0 ? settings.MemorySize : 16;
+            uint stkSize = settings.StackSize > 0 ? settings.StackSize : 8;
+
+            _loggingEnabled = settings.LoggingEnabled;
             _crashHandle = Crash;
             _logger = logger;
-            _pc = (int)entryPoint;
-            Initialize(memorySize, stackSize, hostLibraries ?? new HostCallLibrary[0]);
+            _dumpRegisters = settings.DumpRegisters;
+            _dumpMemory = settings.DumpMemory;
+            _dumpFlags = settings.DumpFlags;
+            _strict = settings.Strict;
+            _timeout = settings.Timeout;
+            _noHostCall = settings.NoHostCall;
+            _dumpOnCrash = settings.DumpOnCrash;
+            _dumpOnExit = settings.DumpOnExit;
+            _profile = settings.Profile;
+            _entryPoint = settings.Entry;
+            _tickRate = settings.TickRate;
+            _loops = settings.Loops;
+            _labels = settings.Labels ?? new Dictionary<string, int>();
 
-            Run(programArray);
+            var libraries = settings.Libraries ?? new HostCallLibrary[0];
+            Initialize(memSize, stkSize, libraries, settings.StackProtect);
+
+            _program = programArray;
+            _pc = _entryPoint;
+
+            if (settings.AutoRun)
+                Run();
         }
 
-        private void Initialize(uint memorySize, uint stackSize, HostCallLibrary[] hostLibraries)
+        private void Initialize(uint memorySize, uint stackSize, HostCallLibrary[] hostLibraries, bool stackProtect)
         {
-            _memory = new Memory(new int[memorySize], stackSize, this, _crashHandle);
+            _memory = new Memory(new int[memorySize], stackSize, this, _crashHandle, stackProtect);
             _registers = new RegisterManager(this, _crashHandle);
             _coreCallDispatcher = new CoreCallDispatcher();
             _hostCallDispatcher = new HostCallDispatcher(hostLibraries);
@@ -116,64 +230,136 @@ namespace VirtualCPU
                 .Where(t => typeof(OpcodeInstruction).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
                 .Select(t => (OpcodeInstruction)Activator.CreateInstance(t))
                 .ToArray();
+
             foreach (var lib in hostLibraries)
                 lib.Initialize(this);
         }
 
         /// <summary>
-        /// Executes the program
+        /// Executes the program to completion on the current thread.
         /// </summary>
-        /// <param name="programArray">The program in bytes to be executed</param>
-        private void Run(int[] programArray)
+        private void Run()
         {
             Log("Executing the program");
+            _instructionCount = 0;
 
-            _program = programArray;
+            if (_profile)
+                _profileWatch = Stopwatch.StartNew();
 
-            while (_pc < _program.Length && !_forceQuit)
+            while (!IsComplete)
+                ExecuteOne();
+
+            DumpOnComplete();
+        }
+
+        /// <summary>
+        /// Runs up to <paramref name="count"/> instructions then returns.
+        /// Call from a coroutine or Update for tick-rate execution.
+        /// <see cref="DumpOnComplete"/> fires automatically once <see cref="IsComplete"/> becomes true.
+        /// </summary>
+        public void Step(int count = 1)
+        {
+            if (_profile && _profileWatch == null)
+                _profileWatch = Stopwatch.StartNew();
+
+            int executed = 0;
+
+            while (executed < count && !IsComplete)
             {
-                int instruction = _program[_pc]; // Current instruction at the program counter
-                var opcode = _opcodeActions.Where(x => x.Accept(instruction)).FirstOrDefault();
-                if (opcode == null)
-                {
-                    Crash($"No instruction found for {_pc}");
-                    break; //Stop the loop if no instruction was found to "crash" the program.
-                }
-
-                Log($"<--(Executing {opcode.Name} instruction)-->");
-                opcode.Act(this, instruction, _crashHandle);
-                Log($"<--(Finished {opcode.Name} instruction)--->");
-                Space();
+                ExecuteOne();
+                executed++;
             }
+
+            if (IsComplete)
+                DumpOnComplete();
+        }
+
+        /// <summary>
+        /// Resets execution back to the entry point.
+        /// Only valid after a clean (non-crash) exit; does nothing if the program crashed.
+        /// </summary>
+        public void Restart()
+        {
+            if (_crashed)
+                return;
+
+            _forceQuit = false;
+            _dumpedOnComplete = false;
+            _instructionCount = 0;
+            _profileWatch = null;
+            _pc = _entryPoint;
+            _loopCount++;
+        }
+
+        private void ExecuteOne()
+        {
+            int instruction = _program[_pc];
+            var opcode = _opcodeActions.Where(x => x.Accept(instruction)).FirstOrDefault();
+
+            if (opcode == null)
+            {
+                if (_strict)
+                    Crash($"Unknown opcode {instruction} at PC {_pc}");
+                else
+                    _pc++;
+
+                return;
+            }
+
+            Log($"<--(Executing {opcode.Name} instruction)-->");
+            opcode.Act(this, instruction, _crashHandle);
+            Log($"<--(Finished {opcode.Name} instruction)--->");
+            Space();
+
+            _instructionCount++;
+
+            if (_timeout > 0 && _instructionCount >= _timeout)
+                Crash($"Timeout: reached {_instructionCount} instructions without halting");
+        }
+
+        private void DumpOnComplete()
+        {
+            if (_dumpedOnComplete)
+                return;
+
+            _dumpedOnComplete = true;
+            _profileWatch?.Stop();
+
+            if (_profile)
+                Log($"[Profile] {_instructionCount} instructions in {_profileWatch?.ElapsedMilliseconds ?? 0}ms");
 
             Space();
 
-            if (_dumpRegisters)
+            bool conditional = (_dumpOnCrash && _crashed) || (_dumpOnExit && !_crashed);
+
+            if (_dumpRegisters || conditional)
                 DumpRegisters();
 
             Space();
 
-            if (_dumpFlags)
+            if (_dumpFlags || conditional)
                 DumpFlags();
 
             Space();
 
-            if (_dumpMemory)
+            if (_dumpMemory || conditional)
                 DumpMemory();
         }
 
         /// <summary>
-        /// Simulates crashing the program
+        /// Simulates crashing the program.
         /// </summary>
         private void Crash(string errorMessage)
         {
             LogError($"The program has crashed: {errorMessage}");
+            _crashed = true;
             _forceQuit = true;
         }
 
         private void DumpRegisters()
         {
             Log("Dumping registers:");
+
             for (int i = 0; i < Enum.GetValues(typeof(Register)).Length; i++)
             {
                 var value = _registers.GetRegisterValue(i);
@@ -184,6 +370,7 @@ namespace VirtualCPU
         private void DumpFlags()
         {
             Log("Dumping flags:");
+
             for (int i = 0; i < Enum.GetValues(typeof(Flags)).Length; i++)
             {
                 var flag = (Flags)(1 << i);
@@ -195,26 +382,43 @@ namespace VirtualCPU
         private void DumpMemory()
         {
             Log("Dumping memory:");
+
             for (uint i = 0; i < _memory.HeapMemorySize; i++)
             {
                 var value = _memory.GetFromMemory(i);
                 Log($"Memory address {i} holds = {value}");
             }
         }
+
         #endregion
 
-        #region API's 
+        #region API's
 
         /// <summary>
-        /// Sets the program counter to a specific value, if the value is out of bounds it will crash the program
+        /// Sets the program counter to a specific value.
+        /// Crashes the program if the value is out of bounds.
         /// </summary>
         /// <param name="value">The value to set the program counter to.</param>
         public void SetProgramCounter(int value)
         {
             _pc = value;
+
             if (_pc > _program.Length)
                 Crash("Tried to set the program counter to a value that is out of bounds");
+        }
 
+        /// <summary>
+        /// Sets the program counter to the address of a label.
+        /// </summary>
+        /// <param name="label">The label whose address to set the program counter to.</param>
+        public void SetProgramCounter(string label)
+        {
+            if (!_labels.TryGetValue(label, out int address))
+            {
+                Debug.LogError($"Label {label} could not be found, PC was not changed.");
+                return;
+            }
+            SetProgramCounter(address);
         }
 
         public void EndProgram()
@@ -229,22 +433,21 @@ namespace VirtualCPU
         /// Prints a message to the <see cref="ILogger"/> without a new line at the end.
         /// </summary>
         /// <param name="message">The message to print.</param>
-        /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>
+        /// <remarks>Works regardless of whether _loggingEnabled is set.</remarks>
         public void Print(string message) => _logger.Log(message);
 
         /// <summary>
-        /// Prints a character to the given <see cref="ILogger"/> without a new line at the end.
+        /// Prints a character to the <see cref="ILogger"/> without a new line at the end.
         /// </summary>
         /// <param name="message">The character to print.</param>
-        /// <remarks>This works regardless if _loggingEnabled is enabled or not.</remarks>
+        /// <remarks>Works regardless of whether _loggingEnabled is set.</remarks>
         public void Print(char message) => _logger.Log(message.ToString());
 
-
         /// <summary>
-        /// Logs an error message to the console in red color, and resets the color back to white after logging.
+        /// Logs an error message to the console in red and resets the color afterward.
         /// </summary>
         /// <param name="errorMessage">The error message to log.</param>
-        /// <remarks>This does NOT work if _loggingEnabled is false.</remarks>
+        /// <remarks>Does NOT work if _loggingEnabled is false.</remarks>
         public void LogError(string errorMessage)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -253,11 +456,9 @@ namespace VirtualCPU
         }
 
         /// <summary>
-        /// Writes a message to the console in the specified color if debug mode is enabled.
+        /// Writes a message to the logger if logging is enabled.
         /// </summary>
-        /// <param name="message">The message to display in the console.</param>
-        /// <param name="color">The color to use for the console output. Defaults to green.</param>
-        /// <remarks>This does NOT work if _loggingEnabled is false.</remarks>
+        /// <param name="message">The message to display.</param>
         public void Log(string message)
         {
             if (_loggingEnabled)
@@ -265,8 +466,7 @@ namespace VirtualCPU
         }
 
         /// <summary>
-        /// Logs an empty line to the console if debug mode is enabled, 
-        /// this is used to separate different instructions in the console output for better readability.
+        /// Logs an empty line to separate instruction output in the console.
         /// </summary>
         public void Space()
         {
