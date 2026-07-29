@@ -148,4 +148,7 @@ public enum UnityLibrarySyscall : byte
 
     /// <summary>Logs the null-terminated string at memory address ECX to the Unity console at level EDX.</summary>
     SysLogString    = 0x26,
+
+    /// <summary>Spawns a prefab at the float-encoded position in R0/R1/R2. ECX=prefabId, EDX=destReg (receives object ID).</summary>
+    SysSpawnFloat   = 0x27,
 }

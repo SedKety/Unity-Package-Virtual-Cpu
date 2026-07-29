@@ -158,6 +158,16 @@ public class AsmAssembler : ITargetAssembler
         if (int.TryParse(s, out int dec))
             return dec;
 
+        // Float literal: 5f, 3.14f, or bare decimal 3.14
+        bool hasFloatSuffix = s.EndsWith("f", StringComparison.OrdinalIgnoreCase);
+        bool hasDecimalPoint = s.Contains('.');
+        if (hasFloatSuffix || hasDecimalPoint)
+        {
+            string floatStr = hasFloatSuffix ? s.Substring(0, s.Length - 1) : s;
+            if (float.TryParse(floatStr, NumberStyles.Float, CultureInfo.InvariantCulture, out float f))
+                return BitConverter.SingleToInt32Bits(f);
+        }
+
         Debug.LogError($"[AsmAssembler] Could not parse operand '{raw}'");
         return 0;
     }

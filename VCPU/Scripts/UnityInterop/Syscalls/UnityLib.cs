@@ -5,6 +5,5 @@
 /// </summary>
 public class UnityLib : HostCallLibrary
 {
-    public static readonly int ID = 0x01;
     public override int LibraryID => 0x01;
 }

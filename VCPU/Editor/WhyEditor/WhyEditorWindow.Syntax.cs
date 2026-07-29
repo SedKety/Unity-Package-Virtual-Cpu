@@ -49,7 +49,7 @@ public partial class WhyEditorWindow
 
     private static readonly System.Collections.Generic.HashSet<string> AsmMnemonics =
         new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        { "END","NOP","CORECALL","HOSTCALL","LOAD","JMP","MOV","JNE","JE","JL","JG","ADD","CMP","SUB","INC","DEC" };
+        { "END","NOP","CORECALL","HOSTCALL","LOAD","JMP","MOV","JNE","JE","JL","JG","ADD","CMP","SUB","INC","DEC","CALL","RET" };
 
     private static readonly System.Collections.Generic.HashSet<string> AsmRegisters =
         new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -392,6 +392,13 @@ public partial class WhyEditorWindow
         if (AsmRegisters.Contains(token)) return ArgRegisterColor;
         if (token.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) return ArgValueColor;
         if (int.TryParse(token, out _)) return ArgValueColor;
+        bool hasF = token.EndsWith("f", StringComparison.OrdinalIgnoreCase);
+        bool hasDot = token.Contains('.');
+        if ((hasF || hasDot) && float.TryParse(
+                hasF ? token.Substring(0, token.Length - 1) : token,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out _))
+            return ArgValueColor;
         return AsmLabelColor; // assume label reference
     }
 

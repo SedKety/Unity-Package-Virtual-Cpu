@@ -173,6 +173,7 @@ public partial class WhyEditorWindow : EditorWindow
 
     private void OnDestroy()
     {
+        StopScript();
         if (_clearTex != null)
             DestroyImmediate(_clearTex);
     }
@@ -303,13 +304,25 @@ public partial class WhyEditorWindow : EditorWindow
             ToggleLibraryPanel();
         GUI.color = Color.white;
 
+        GUILayout.Label(
+            string.IsNullOrEmpty(_filePath) ? string.Empty : Path.GetFileName(_filePath),
+            EditorStyles.miniLabel,
+            GUILayout.ExpandWidth(false));
+
         GUILayout.FlexibleSpace();
-        GUILayout.Label(string.IsNullOrEmpty(_filePath) ? string.Empty : _filePath, EditorStyles.miniLabel);
 
         using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(_content)))
         {
-            if (GUILayout.Button("Run", EditorStyles.toolbarButton, GUILayout.Width(36)))
-                RunScript();
+            if (IsRunning)
+            {
+                if (GUILayout.Button("Stop", EditorStyles.toolbarButton, GUILayout.Width(36)))
+                    StopScript();
+            }
+            else
+            {
+                if (GUILayout.Button("Run", EditorStyles.toolbarButton, GUILayout.Width(36)))
+                    RunScript();
+            }
         }
 
         EditorGUILayout.EndHorizontal();

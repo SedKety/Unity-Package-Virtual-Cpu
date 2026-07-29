@@ -5,10 +5,14 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Tools/WHY menu — editor utilities for WHY scripts and ScriptExecutionUnit components.
+/// Tools/WHY menu editor utilities for WHY scripts and ScriptExecutionUnit components.
 /// </summary>
 public static class WHYToolsMenu
 {
+    /// <summary>
+    /// Validates all ScriptExecutionUnit components in the currently loaded scenes 
+    /// to ensure that their included script libraries match existing HostCallLibrary subclasses.
+    /// </summary>
     [MenuItem("Tools/WHY/Validate Script Libraries")]
     private static void ValidateScriptLibraries()
     {
@@ -26,7 +30,7 @@ public static class WHYToolsMenu
                 var script = GetScriptFile(seu);
                 if (script == null)
                 {
-                    Debug.LogWarning($"[WHY] {seu.name} — no script file assigned.", seu);
+                    Debug.LogWarning($"[WHY] ({seu.name}) no script file assigned.", seu);
                     warnings++;
                     continue;
                 }
@@ -42,18 +46,18 @@ public static class WHYToolsMenu
 
                     if (!found)
                     {
-                        Debug.LogWarning($"[WHY] {seu.name} — #include '{name}' does not match any HostCallLibrary subclass.", seu);
+                        Debug.LogWarning($"[WHY] ({seu.name}) #include '{name}' does not match any HostCallLibrary subclass.", seu);
                         warnings++;
                     }
                     else
                     {
-                        Debug.Log($"[WHY] {seu.name} — #include '{name}' OK.", seu);
+                        Debug.Log($"[WHY] ({seu.name}) #include '{name}' OK.", seu);
                     }
                 }
             }
         }
 
-        Debug.Log($"[WHY] Validate complete — {checked_} ScriptExecutionUnit(s) checked, {warnings} warning(s).");
+        Debug.Log($"[WHY] Validate complete. {checked_} ScriptExecutionUnit(s) checked, {warnings} warning(s).");
         if (warnings > 0)
             EditorUtility.DisplayDialog("WHY Library Validation", $"{warnings} warning(s) found. See Console for details.", "OK");
         else

@@ -1,5 +1,7 @@
 using UnityEngine;
+using UnityEditor;
 using System;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using VirtualCPU;
@@ -38,8 +40,17 @@ public partial class WhyEditorWindow
     /// Opens the terminal window automatically. <see cref="VCPU"/> diagnostic logging is disabled so only
     /// program output (from SysWrite etc.) appears in the terminal.
     /// </summary>
+    private VCPU              _runningVcpu;
+    private WhyTerminalWindow _runTerminal;
+    private int               _runMaxRuns;
+    private int               _runCount;
+
+    private bool IsRunning => _runningVcpu != null;
+
     private void RunScript()
     {
+        StopScript();
+
         AssemblyResult result = CompileForEditor(StripVisualPrefixes(_content));
         int[] program = result?.Program;
 
@@ -60,9 +71,10 @@ public partial class WhyEditorWindow
         var logger = new WhyTerminalLogger(terminal);
         try
         {
+            var libraries = ResolveLibraries(headers.Includes, terminal);
             var vcpu = new VCPU(program, logger, new VCPUSettings
             {
-                Libraries = new HostCallLibrary[] { new UnityLib() },
+                Libraries = libraries,
                 LoggingEnabled = false,
                 MemorySize = headers.MemSize > 0 ? headers.MemSize : 16,
                 StackSize = headers.StackSize > 0 ? headers.StackSize : 8,
@@ -78,31 +90,83 @@ public partial class WhyEditorWindow
             });
 
             int maxRuns = headers.Loops == 0 ? 1 : headers.Loops;
-            bool forever = maxRuns == VCPUSettings.LoopForever;
-
-            if (forever)
+            if (maxRuns == VCPUSettings.LoopForever)
             {
                 terminal.AppendError("LoopForever is not supported in the editor — running once.");
                 maxRuns = 1;
-                forever = false;
             }
 
-            for (int run = 0; run < maxRuns; run++)
-            {
-                while (!vcpu.IsComplete)
-                    vcpu.Step(int.MaxValue);
-
-                if (run < maxRuns - 1)
-                    vcpu.Restart();
-            }
-
-            //Yeah same here, nice touch but damn this sucks to look at in code.
-            terminal.Append("■  Done.");
+            _runningVcpu = vcpu;
+            _runTerminal = terminal;
+            _runMaxRuns  = maxRuns;
+            _runCount    = 0;
+            terminal.SetRerunAction(RunScript);
+            terminal.SetStopAction(StopScript);
+            terminal.SetRunning(true);
+            EditorApplication.update += StepVcpu;
         }
         catch (Exception ex)
         {
             terminal.AppendError($"Runtime exception: {ex.Message}");
         }
+    }
+
+    private void StepVcpu()
+    {
+        if (_runningVcpu == null) return;
+
+        _runningVcpu.Step(10000);
+
+        if (!_runningVcpu.IsComplete) return;
+
+        _runCount++;
+        if (_runCount < _runMaxRuns)
+        {
+            _runningVcpu.Restart();
+            if (_runningVcpu.IsComplete) // crashed — Restart() was a no-op
+                FinishRun();
+        }
+        else
+        {
+            _runTerminal?.Append("■  Done.");
+            FinishRun();
+        }
+    }
+
+    private void StopScript()
+    {
+        if (_runningVcpu == null) return;
+        _runTerminal?.Append("■  Stopped.");
+        FinishRun();
+    }
+
+    private void FinishRun()
+    {
+        EditorApplication.update -= StepVcpu;
+        _runningVcpu = null;
+        _runTerminal?.SetRunning(false);
+        _runTerminal = null;
+        Repaint();
+    }
+
+    private static HostCallLibrary[] ResolveLibraries(string[] includes, WhyTerminalWindow terminal)
+    {
+        var list = new System.Collections.Generic.List<HostCallLibrary>();
+        foreach (var name in includes)
+        {
+            var type = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => { try { return a.GetTypes(); } catch { return Type.EmptyTypes; } })
+                .FirstOrDefault(t => typeof(HostCallLibrary).IsAssignableFrom(t)
+                                  && !t.IsAbstract
+                                  && t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (type == null)
+            {
+                terminal.AppendError($"#include '{name}' — no HostCallLibrary found.");
+                continue;
+            }
+            list.Add((HostCallLibrary)Activator.CreateInstance(type));
+        }
+        return list.ToArray();
     }
 
     /// <param name="raw">Clean (prefix-stripped) <c>.why</c> source text.</param>

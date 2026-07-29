@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using VirtualCPU;
@@ -11,9 +12,19 @@ using VirtualCPU;
 /// </summary>
 public class ScriptExecutionUnit : MonoBehaviour
 {
+    [Serializable]
+    public struct DefineOverride
+    {
+        public string Name;
+        public string Value;
+    }
+
     #region Variables
     [SerializeField] private TextAsset _scriptFile;
     [SerializeField] private AssemblyTokenHolder _tokenHolder;
+
+    [Header("Defines")]
+    [SerializeField] private List<DefineOverride> _defineOverrides = new List<DefineOverride>();
 
     [Header("Memory")]
     [SerializeField] private uint _heapSize = 16;
@@ -44,13 +55,15 @@ public class ScriptExecutionUnit : MonoBehaviour
     [ContextMenu("Execute")]
     public void Execute()
     {
-        if (_assembled == null)
-        {
-            Debug.LogWarning("[ScriptExecutionUnit] No compiled program. Run Assemble first.");
-            return;
-        }
+        var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in _defineOverrides)
+            if (!string.IsNullOrEmpty(d.Name))
+                overrides[d.Name] = d.Value;
 
-        bool usesCoroutine = _headers != null && (_headers.TickRate > 0 || _headers.Loops != 0);
+        _assembled = ScriptAssembler.Assemble(_scriptFile, overrides.Count > 0 ? overrides : null);
+        _headers   = ScriptAssembler.ParseHeaders(_scriptFile);
+
+        bool usesCoroutine = _headers.TickRate > 0 || _headers.Loops != 0;
 
         if (usesCoroutine)
             StartCoroutine(ExecuteCoroutine());

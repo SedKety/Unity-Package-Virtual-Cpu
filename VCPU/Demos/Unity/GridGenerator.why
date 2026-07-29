@@ -1,0 +1,65 @@
+#Include UnityLib
+#Include MathLib
+
+#ASM
+#MEMSIZE 32
+#STACKSIZE 8
+#LOOP 0
+#TICK_RATE 60
+#timeout 100000
+
+#Define X 10
+#Define Z 10
+#Define MaxHeight 10
+
+.Code
+
+;Generate a random seed into R4 (used by PerlinHeight to offset the sample coordinates)
+LOAD ECX, R4 ;Destination register index = 4 (R4)
+LOAD EDX, 0 ;Min = 0
+LOAD ESI, 10000 ;Max = 10000
+CORECALL 0x02 ;SysRandom: R4 = random(0, 10000)
+
+;Load X and Z limits
+LOAD EBX, X ;Max X (outer loop limit)
+LOAD R9,  Z ;Max Z (middle loop limit, stored in R9 to avoid conflict with EAX)
+
+LOAD ESI, 0 ;Reset X counter
+
+X_Loop:
+LOAD EDI, 0 ;Reset Z counter for each new X column
+
+Z_Loop:
+;Set up PerlinHeight inputs for this (X, Z) column
+MOV  ESI, R0 ;R0 = current X
+MOV  EDI, R1 ;R1 = current Z
+LOAD R2,  MaxHeight ;R2 = max height
+hostcall MathLib, PerlinHeight ;EAX = column height (integer 0-MaxHeight, seed in R4)
+
+;Stack blocks from 0 up to the sampled height
+LOAD R11, 0 ;Reset Y counter
+
+Y_Loop:
+CMP  R11, EAX
+JE   @After_Y ;Exit when Y counter reaches the Perlin height
+
+;Pass coordinates to SysSpawn (R0=X already set at Z_Loop top)
+MOV  R11, R1 ;R1 = current Y
+MOV  EDI, R2 ;R2 = current Z
+LOAD ECX, 0x00 ;Prefab ID (cube in the PrefabService registry)
+LOAD EDX, R3 ;Destination register index = 3 (R3 receives spawned object ID)
+hostcall UnityLib, SysSpawn
+
+INC  R11 ;Increment Y
+JMP  @Y_Loop
+
+After_Y:
+INC  EDI ;Increment Z
+CMP  EDI, R9 ;Check if this row is done
+JNE  @Z_Loop
+
+INC  ESI ;Increment X
+CMP  ESI, EBX ;Check if this column is done
+JNE  @X_Loop
+
+END

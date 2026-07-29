@@ -22,6 +22,9 @@ public class WhyTerminalWindow : EditorWindow
     private GUIStyle _logStyle;
     private GUIStyle _errStyle;
     private GUIStyle _tsStyle;
+    private Action   _rerunAction;
+    private Action   _stopAction;
+    private bool     _isRunning;
 
     [Serializable]
     private struct LogEntry { public string Text, Timestamp; public bool IsError; }
@@ -38,6 +41,10 @@ public class WhyTerminalWindow : EditorWindow
     }
 
     private void OnEnable() => s_Instance = this;
+
+    public void SetRerunAction(Action a) => _rerunAction = a;
+    public void SetStopAction(Action a)  => _stopAction  = a;
+    public void SetRunning(bool running) { _isRunning = running; Repaint(); }
 
     /// <summary>
     /// Removes all entries and repaints the window.
@@ -82,6 +89,12 @@ public class WhyTerminalWindow : EditorWindow
         if (GUILayout.Button("Clear", EditorStyles.toolbarButton, GUILayout.Width(44)))
             Clear();
         _autoScroll = GUILayout.Toggle(_autoScroll, "Auto-scroll", EditorStyles.toolbarButton, GUILayout.Width(78));
+        using (new EditorGUI.DisabledScope(_isRunning || _rerunAction == null))
+            if (GUILayout.Button("Re-run", EditorStyles.toolbarButton, GUILayout.Width(52)))
+                _rerunAction?.Invoke();
+        using (new EditorGUI.DisabledScope(!_isRunning))
+            if (GUILayout.Button("Stop", EditorStyles.toolbarButton, GUILayout.Width(40)))
+                _stopAction?.Invoke();
         EditorGUILayout.EndHorizontal();
 
         EditorGUI.DrawRect(new Rect(0, EditorStyles.toolbar.fixedHeight, position.width, position.height), new Color(0.11f, 0.11f, 0.11f));

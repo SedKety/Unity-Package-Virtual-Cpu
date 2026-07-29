@@ -14,8 +14,8 @@ public class SysRandom : ICoreCall
     public void Execute(VCPU cpu)
     {
         var destReg = cpu.Registers.GetRegisterValue((int)Register.ECX);
-        var min     = cpu.Registers.GetRegisterValue((int)Register.EDX);
-        var max     = cpu.Registers.GetRegisterValue((int)Register.ESI);
+        var min = cpu.Registers.GetRegisterValue((int)Register.EDX);
+        var max = cpu.Registers.GetRegisterValue((int)Register.ESI);
 
         cpu.Registers.SetRegisterValue(destReg, _random.Next(min, max + 1));
     }

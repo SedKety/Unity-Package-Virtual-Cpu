@@ -18,17 +18,24 @@ public static class ScriptAssembler
     private static BinAssembler s_binAssembler = new BinAssembler();
     #endregion
 
-    public static AssemblyResult Assemble(TextAsset script) => Assemble(script.text);
+    public static AssemblyResult Assemble(TextAsset script) => Assemble(script.text, null);
+    public static AssemblyResult Assemble(TextAsset script, Dictionary<string, string> extraDefines)
+        => Assemble(script.text, extraDefines);
+    public static AssemblyResult Assemble(string text) => Assemble(text, null);
 
     /// <summary>
     /// Assembles raw .why script text into a runnable integer program.
     /// All executable code lives in .Code. Subroutines go after an END instruction
     /// in .Code — CALL jumps to them, RET jumps back; they never auto-execute.
     /// Labels are resolved in a global two-pass so forward references work freely.
+    /// <paramref name="extraDefines"/> are merged after parsing — they override any same-named #define in the script.
     /// </summary>
-    public static AssemblyResult Assemble(string text)
+    public static AssemblyResult Assemble(string text, Dictionary<string, string> extraDefines)
     {
         var headers = ParseHeaders(text);
+        if (extraDefines != null)
+            foreach (var kv in extraDefines)
+                headers.Defines[kv.Key] = kv.Value;
         InjectLibraryDefines(headers);
         var stripped = StripComments(text);
         var sections = GetSections(
