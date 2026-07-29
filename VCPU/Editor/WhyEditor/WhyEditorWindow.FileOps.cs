@@ -88,10 +88,10 @@ public partial class WhyEditorWindow
     {
         if (!IsDirty || !ConfirmDiscard())
             return;
+        PushUndo(); // keep discarded changes recoverable via Ctrl+Z
         string raw = !string.IsNullOrEmpty(_filePath) && File.Exists(_filePath)
             ? File.ReadAllText(_filePath).Replace("\r\n", "\n").Replace("\r", "\n") : string.Empty;
         _content = _savedContent = AddVisualPrefixes(StripVisualPrefixes(raw));
-        ClearHistory();
         Repaint();
     }
 

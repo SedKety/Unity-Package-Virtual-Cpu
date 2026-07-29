@@ -58,6 +58,14 @@ public partial class WhyEditorWindow
                 _textAreaControlID = kbCtrl;
         }
 
+        // Always save the latest cursor so InsertAtCursor can use it even after focus leaves.
+        if (_textAreaControlID > 0)
+        {
+            var trackTe = GUIUtility.GetStateObject(typeof(TextEditor), _textAreaControlID) as TextEditor;
+            if (trackTe != null && trackTe.cursorIndex >= 0)
+                _lastCursorIndex = trackTe.cursorIndex;
+        }
+
         if (edited.IndexOf('\r') >= 0)
             edited = edited.Replace("\r\n", "\n").Replace("\r", "\n");
 
@@ -143,6 +151,11 @@ public partial class WhyEditorWindow
         else if (e.keyCode == KeyCode.Y || (e.keyCode == KeyCode.Z && e.shift))
         {
             PerformStep(_redoStack, _undoStack);
+            e.Use();
+        }
+        else if (e.keyCode == KeyCode.S)
+        {
+            SaveFile();
             e.Use();
         }
     }

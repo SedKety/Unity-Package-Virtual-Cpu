@@ -3,7 +3,7 @@ using System;
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// JNE operand isRegister
+    /// JNE operand addrmode
     /// </summary>
     public class JumpIfNotEqualInstruction : OpcodeInstruction
     {
@@ -20,8 +20,8 @@ namespace VirtualCPU.Opcodes
             }
 
             var operand = vCpu.Program[vCpu.ProgramCounter + 1];
-            bool isRegister = vCpu.Program[vCpu.ProgramCounter + 2] != 0;
-            var destination = isRegister ? vCpu.Registers.GetRegisterValue(operand) : operand;
+            bool addrmode = vCpu.Program[vCpu.ProgramCounter + 2] != 0;
+            var destination = addrmode ? vCpu.Registers.GetRegisterValue(operand) : operand;
             vCpu.Log($"Values are not equal, jumping to: {destination}");
             vCpu.SetProgramCounter(destination);
         }

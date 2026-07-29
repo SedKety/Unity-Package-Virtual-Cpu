@@ -4,6 +4,9 @@
 /// </summary>
 public class ScriptHeaders
 {
+    public string[] Includes = System.Array.Empty<string>();
+    public System.Collections.Generic.Dictionary<string, string> Defines =
+        new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
     public Headers Format = Headers.NONE;
     public uint MemSize = 0;
     public uint StackSize = 0;

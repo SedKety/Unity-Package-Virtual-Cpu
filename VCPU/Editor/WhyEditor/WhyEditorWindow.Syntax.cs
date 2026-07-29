@@ -12,11 +12,13 @@ using VirtualCPU;
 /// </summary>
 public partial class WhyEditorWindow
 {
-    private static readonly Color CommentColor        = new Color(0.50f, 0.70f, 0.50f);
-    private static readonly Color HeaderColor         = new Color(0.70f, 0.50f, 1.00f);
+    private static readonly Color CommentColor         = new Color(0.50f, 0.70f, 0.50f);
+    private static readonly Color HeaderColor          = new Color(0.70f, 0.50f, 1.00f);
     private static readonly Color HeaderDirectiveColor = new Color(0.95f, 0.78f, 0.35f);
-    private static readonly Color PlainColor          = new Color(0.85f, 0.85f, 0.85f);
-    private static readonly Color ErrorColor          = new Color(0.95f, 0.28f, 0.28f);
+    private static readonly Color IncludeColor         = new Color(0.55f, 0.88f, 0.72f); // #include
+    private static readonly Color DefineColor          = new Color(0.85f, 0.65f, 0.95f); // #define
+    private static readonly Color PlainColor           = new Color(0.85f, 0.85f, 0.85f);
+    private static readonly Color ErrorColor           = new Color(0.95f, 0.28f, 0.28f);
 
     // Each argument type gets its own hue so you can tell at a glance what role each byte plays.
     private static readonly Color ArgRegisterColor = new Color(0.45f, 0.90f, 0.90f);
@@ -68,7 +70,6 @@ public partial class WhyEditorWindow
         bool warnHeaders = HeadersHasNoFormat(content);
 
         bool inCode    = false;
-        bool inHeaders = false;
         Headers defaultFormat = Headers.NONE;
         Headers codeFormat    = Headers.NONE;
 
@@ -81,13 +82,9 @@ public partial class WhyEditorWindow
             if (trimmed.StartsWith("."))
             {
                 string name = SectionName(trimmed);
-                if (name.Equals("headers", StringComparison.OrdinalIgnoreCase))
+                if (name.Equals("code", StringComparison.OrdinalIgnoreCase))
                 {
-                    inHeaders = true; inCode = false;
-                }
-                else if (name.Equals("code", StringComparison.OrdinalIgnoreCase))
-                {
-                    inCode = true; inHeaders = false;
+                    inCode = true;
                     codeFormat = defaultFormat;
                 }
                 else if (inCode && SubsectionNames.Contains(name) &&
@@ -95,8 +92,12 @@ public partial class WhyEditorWindow
                 {
                     codeFormat = sub;
                 }
+                else
+                {
+                    inCode = false;
+                }
             }
-            else if (inHeaders && trimmed.StartsWith("#"))
+            else if (!inCode && trimmed.StartsWith("#"))
             {
                 var parts = trimmed.Substring(1).Trim()
                     .Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries);
@@ -195,7 +196,15 @@ public partial class WhyEditorWindow
             string directiveName = body.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries).Length > 0
                 ? body.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries)[0]
                 : body;
-            Color directiveCol = HeaderDirectiveNames.Contains(directiveName) ? HeaderDirectiveColor : ErrorColor;
+            Color directiveCol;
+            if (!HeaderDirectiveNames.Contains(directiveName))
+                directiveCol = ErrorColor;
+            else if (directiveName.Equals("INCLUDE", StringComparison.OrdinalIgnoreCase))
+                directiveCol = IncludeColor;
+            else if (directiveName.Equals("DEFINE", StringComparison.OrdinalIgnoreCase))
+                directiveCol = DefineColor;
+            else
+                directiveCol = HeaderDirectiveColor;
 
             if (leading > 0)
                 AppendColoured(sb, line.Substring(0, leading), PlainColor);
@@ -453,7 +462,7 @@ public partial class WhyEditorWindow
     // code format at that line (ASM / HEX / DEC / BIN / NONE).
     private static Headers GetFormatAtLine(string[] lines, int lineCount)
     {
-        bool inHeaders = false, inCode = false;
+        bool inCode = false;
         Headers defaultFmt = Headers.NONE, codeFmt = Headers.NONE;
         for (int i = 0; i < lineCount && i < lines.Length; i++)
         {
@@ -461,15 +470,15 @@ public partial class WhyEditorWindow
             if (t.StartsWith("."))
             {
                 string name = SectionName(t);
-                if (name.Equals("headers", StringComparison.OrdinalIgnoreCase))
-                { inHeaders = true; inCode = false; }
-                else if (name.Equals("code", StringComparison.OrdinalIgnoreCase))
-                { inCode = true; inHeaders = false; codeFmt = defaultFmt; }
+                if (name.Equals("code", StringComparison.OrdinalIgnoreCase))
+                { inCode = true; codeFmt = defaultFmt; }
                 else if (inCode && SubsectionNames.Contains(name) &&
                          Enum.TryParse(name, ignoreCase: true, out Headers sub))
                 { codeFmt = sub; }
+                else
+                { inCode = false; }
             }
-            else if (inHeaders && t.StartsWith("#"))
+            else if (!inCode && t.StartsWith("#"))
             {
                 var ps = t.Substring(1).Trim()
                     .Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries);

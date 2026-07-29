@@ -56,6 +56,18 @@ namespace VirtualCPU
         JL = 0x0A,  // Jump if less
         JG = 0x0B,  // Jump if greater
 
+        /// <summary>
+        /// Pushes the return address onto the stack and jumps to the target.
+        /// Format: CALL Address addrmode
+        /// </summary>
+        CALL = 0x0C,
+
+        /// <summary>
+        /// Pops the return address from the stack and jumps to it.
+        /// Format: RET
+        /// </summary>
+        RET = 0x0D,
+
         //<-----------Arithmetic opcodes------------>
 
         /// <summary>

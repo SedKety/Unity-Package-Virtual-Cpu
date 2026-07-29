@@ -108,7 +108,7 @@ namespace VirtualCPU
         public int Loops;
 
         /// <summary>
-        /// Label name → absolute bytecode address map produced by the assembler.
+        /// Label name -> absolute bytecode address map produced by the assembler.
         /// Null when no labels were defined or when constructing a VCPU without a script.
         /// </summary>
         public IReadOnlyDictionary<string, int> Labels;

@@ -104,3 +104,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: a6e601a156d6521499a6726d9acfaa4a, type: 2}
     InstructionColor: {r: 0.9, g: 0.55, b: 0.55, a: 1}
     Description: Decrement a register by 1.
+  - Token: CALL
+    operands:
+    - {fileID: 11400000, guid: bcf70c7724668ae4ebfa26bbcad87de1, type: 2}
+    InstructionColor: {r: 1, g: 0.7858428, b: 0, a: 1}
+    Description: Calls a label, jumps to it

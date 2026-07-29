@@ -1,10 +1,12 @@
+using System;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using VirtualCPU;
 
 /// <summary>
-/// This class is responsible for executing a compiled script using a virtual CPU (VCPU). 
-/// It allows for the execution of scripts with various settings, including memory size, stack size, logging options, and more. 
+/// This class is responsible for executing a compiled script using a virtual CPU (VCPU).
+/// It allows for the execution of scripts with various settings, including memory size, stack size, logging options, and more.
 /// The class can execute scripts either in a single run or in a coroutine for repeated execution based on specified tick rates and loop counts.
 /// </summary>
 public class ScriptExecutionUnit : MonoBehaviour
@@ -12,9 +14,6 @@ public class ScriptExecutionUnit : MonoBehaviour
     #region Variables
     [SerializeField] private TextAsset _scriptFile;
     [SerializeField] private AssemblyTokenHolder _tokenHolder;
-
-    [Header("VCPU Settings")]
-    [SerializeField] private HostCallLibrary[] _libraries;
 
     [Header("Memory")]
     [SerializeField] private uint _heapSize = 16;
@@ -86,11 +85,31 @@ public class ScriptExecutionUnit : MonoBehaviour
         }
     }
 
+    private static HostCallLibrary ResolveLibrary(string typeName)
+    {
+        var type = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => { try { return a.GetTypes(); } catch { return Type.EmptyTypes; } })
+            .FirstOrDefault(t => typeof(HostCallLibrary).IsAssignableFrom(t)
+                              && !t.IsAbstract
+                              && t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase));
+        if (type == null)
+        {
+            Debug.LogWarning($"[ScriptExecutionUnit] #include '{typeName}' — no HostCallLibrary subclass with that name found.");
+            return null;
+        }
+        return (HostCallLibrary)Activator.CreateInstance(type);
+    }
+
     private VCPU CreateVCPU(bool autoRun)
     {
+        var libraries = _headers?.Includes
+            .Select(ResolveLibrary)
+            .Where(l => l != null)
+            .ToArray() ?? Array.Empty<HostCallLibrary>();
+
         var settings = new VCPUSettings
         {
-            Libraries = _libraries,
+            Libraries = libraries,
             LoggingEnabled = _shouldLog,
             DumpRegisters = _shouldDumpRegisters,
             DumpMemory = _shouldDumpMemory,

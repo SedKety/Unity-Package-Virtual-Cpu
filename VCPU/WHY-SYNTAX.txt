@@ -1,0 +1,92 @@
+WHY SCRIPT SYNTAX REFERENCE -27/07/2026
+============================
+
+STRUCTURE
+---------
+#pragma         -- pragmas go at the top of the file (outside any region)
+.Code           -- all instructions; subroutines go after END (unreachable by linear execution)
+
+
+PRAGMAS  (#key value)
+---------------------
+#HEX            -- code section is hex literals  (0x05, 0x00, 0x48)
+#ASM            -- code section is assembly mnemonics
+#DEC            -- code section is decimal literals  (5 0 72)
+#BIN            -- code section is binary literals  (00000101 00000000 01001000)
+#include Name   -- load a host library by class name (case-insensitive, any HostCallLibrary subclass)
+                   resolved at runtime via reflection; ScriptExecutionUnit Inspector warns if unknown
+                   multiple #include lines allowed
+#define  N V    -- compile-time constant: every occurrence of N in .Code is replaced by V before assembly
+                   N must be a single identifier; V is the replacement text (number, hex, etc.)
+                   example:  #define ENEMY_COUNT 10  →  LOAD R0, ENEMY_COUNT  becomes  LOAD R0, 10
+#MEMSIZE  n     -- heap size in ints  (default 16)
+#STACKSIZE n    -- stack depth  (default 8)
+#LOOP n         -- repeat n times; 0 = once
+#TICK_RATE n    -- instructions per Unity frame; 0 = run to completion
+#ENTRY n/label  -- start PC at address or label name
+#TIMEOUT n      -- crash after n instructions
+#DEBUG          -- verbose instruction logging
+#STRICT         -- crash on unknown opcode instead of skipping
+#DUMP_ON_CRASH  -- dump registers/flags/memory on crash
+#DUMP_ON_EXIT   -- dump registers/flags/memory on clean exit
+#PROFILE        -- log instruction count and elapsed time on exit
+#STACK_PROTECT  -- clamp stack over/underflow instead of crashing
+#NO_HOSTCALL    -- disable all HOSTCALL instructions
+
+
+COMMENTS
+--------
+; anything after a semicolon is ignored
+
+
+LABELS
+------
+loop:           -- declares a label at the current address (all formats)
+@loop           -- reference: baked to the label's absolute address at compile time
+                   runtime: vcpu.Labels["loop"] returns the address as int
+
+
+OPCODES
+-------
+HEX    DEC  BIN        ASM          operands
+0x00    0   00000000   END          --                        halt
+0x01    1   00000001   NOP          --                        no-op
+0x02    2   00000010   CORECALL     id                        built-in call (see below)
+0x03    3   00000011   HOSTCALL     libIdx funcIdx            user library call
+0x05    5   00000101   LOAD         reg val                   reg = val
+0x06    6   00000110   JMP          addr/reg                  PC = addr
+0x07    7   00000111   MOV          src addrmode dst addrmode       mem<->reg transfer
+0x08    8   00001000   JNE          addr/reg                  jump if last CMP ≠
+0x09    9   00001001   JE           addr/reg                  jump if last CMP =
+0x0A   10   00001010   JL           addr/reg                  jump if last CMP <
+0x0B   11   00001011   JG           addr/reg addrmode         jump if last CMP >
+0x0C   12   00001100   CALL         addr/reg addrmode         push return addr, jump to target
+0x0D   13   00001101   RET          --                        pop return addr, jump back
+0x14   20   00010100   ADD          reg1 reg2                 reg1 += reg2
+0x15   21   00010101   CMP          reg1 reg2                 set flags (reg1 vs reg2)
+0x16   22   00010110   SUB          reg1 reg2                 reg1 -= reg2
+0x17   23   00010111   INC          reg                       reg++
+0x18   24   00011000   DEC          reg                       reg--
+
+addrmode:  0 = static memory address  |  1 = register  |  2 = register-indirect ([reg])
+
+
+REGISTERS
+---------
+R0-R12   0-12    general purpose
+EAX      13      accumulator
+EBX      14      base
+ECX      15      counter  / SysWrite OutputType
+EDX      16      data     / SysWrite SourceType
+ESI      17      source index / SysWrite source
+EDI      18      destination index
+
+
+CORE CALLS  (CORECALL id)
+-------------------------
+SysRead   0x00   ECX=mode (0=byte 1=char 2=string), EDX=dest reg or mem addr
+SysWrite  0x01   ECX=OutputType, EDX=SourceType, ESI=source
+SysRandom 0x02   ECX=dest reg, EDX=min, ESI=max
+
+OutputType:  0=String  1=Hex  2=Decimal  3=Character
+SourceType:  0=Register  1=Memory  2=ImmediateValue

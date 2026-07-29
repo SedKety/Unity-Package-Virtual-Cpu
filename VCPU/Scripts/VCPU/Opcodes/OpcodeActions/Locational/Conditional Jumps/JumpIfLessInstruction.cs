@@ -3,7 +3,7 @@ using System;
 namespace VirtualCPU.Opcodes
 {
     /// <summary>
-    /// JL operand isRegister
+    /// JL operand addrmode
     /// </summary>
     public class JumpIfLessInstruction : OpcodeInstruction
     {
@@ -21,8 +21,8 @@ namespace VirtualCPU.Opcodes
             }
 
             var operand = vCpu.Program[vCpu.ProgramCounter + 1];
-            bool isRegister = vCpu.Program[vCpu.ProgramCounter + 2] != 0;
-            var destination = isRegister ? vCpu.Registers.GetRegisterValue(operand) : operand;
+            bool addrmode = vCpu.Program[vCpu.ProgramCounter + 2] != 0;
+            var destination = addrmode ? vCpu.Registers.GetRegisterValue(operand) : operand;
             vCpu.Log($"Value is less, jumping to: {destination}");
             vCpu.SetProgramCounter(destination);
         }

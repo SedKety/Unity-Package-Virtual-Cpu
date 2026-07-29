@@ -43,6 +43,7 @@ public partial class WhyEditorWindow : EditorWindow
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "HEX", "ASM", "DEC", "BIN",
+            "INCLUDE", "DEFINE",
             "MEMSIZE", "STACKSIZE", "ENTRY", "TIMEOUT", "TICK_RATE", "LOOP",
             "DEBUG", "STRICT", "DUMP_ON_CRASH", "NO_HOSTCALL",
             "PROFILE", "DUMP_ON_EXIT", "STACK_PROTECT",
@@ -54,6 +55,8 @@ public partial class WhyEditorWindow : EditorWindow
     private static readonly Dictionary<string, string> HeaderDirectiveDescriptions =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            { "INCLUDE",      "Load a host library by class name. Any HostCallLibrary subclass is valid (case-insensitive). Example: #include UnityLib" },
+            { "DEFINE",       "Define a compile-time constant. Usage: #define Name Value — every occurrence of Name in .Code is replaced by Value before assembly." },
             { "HEX",          "Format: read the code section as hexadecimal values (e.g. 0x05, 0xFF)." },
             { "ASM",          "Format: read the code section as assembly-like instructions (e.g. LOAD R0, 72)." },
             { "DEC",          "Format: read the code section as decimal integers (e.g. 5, 255)." },
@@ -124,6 +127,20 @@ public partial class WhyEditorWindow : EditorWindow
 
     private int _fontSize = 13;
     private bool _stylesNeedRebuild = false;
+    private int _lastCursorIndex = 0;
+
+    /// <summary>
+    /// Inserts <paramref name="text"/> at the last known cursor position and refocuses the editor.
+    /// </summary>
+    private void InsertAtCursor(string text)
+    {
+        int pos = Mathf.Clamp(_lastCursorIndex, 0, _content.Length);
+        PushUndo();
+        _content = _content.Substring(0, pos) + text + _content.Substring(pos);
+        _pendingCursor = pos + text.Length;
+        GUI.FocusControl(TextAreaControlName);
+        Repaint();
+    }
 
     private const int MinFontSize = 8;
     private const int MaxFontSize = 36;
@@ -223,7 +240,11 @@ public partial class WhyEditorWindow : EditorWindow
         DrawToolbar();
         DrawFilePicker();
         DrawWarnings();
+        EditorGUILayout.BeginHorizontal();
         DrawEditor();
+        if (_showLibraryPanel)
+            DrawLibraryPanel();
+        EditorGUILayout.EndHorizontal();
         DrawTooltip();
     }
 
@@ -276,6 +297,11 @@ public partial class WhyEditorWindow : EditorWindow
 
         if (GUILayout.Button("Clean", EditorStyles.toolbarButton, GUILayout.Width(48)))
             CleanContent();
+
+        GUI.color = _showLibraryPanel ? new Color(0.55f, 0.88f, 0.72f) : Color.white;
+        if (GUILayout.Button("Libs", EditorStyles.toolbarButton, GUILayout.Width(38)))
+            ToggleLibraryPanel();
+        GUI.color = Color.white;
 
         GUILayout.FlexibleSpace();
         GUILayout.Label(string.IsNullOrEmpty(_filePath) ? string.Empty : _filePath, EditorStyles.miniLabel);

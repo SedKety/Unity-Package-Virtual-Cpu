@@ -1,0 +1,171 @@
+UNITY INTEROP REFERENCE
+=======================
+
+
+MONOBEHAVIOUR  (ScriptExecutionUnit)
+-------------------------------------
+Attach ScriptExecutionUnit to any GameObject.
+Drag a .why TextAsset into the Script field in the Inspector.
+
+  Execute()                 -- assemble + run the script (also works via Inspector right-click)
+  SendMessage(string label) -- jump the running VCPU's program counter to a label
+
+
+ASSEMBLING MANUALLY  (ScriptAssembler)
+---------------------------------------
+  AssemblyResult r = ScriptAssembler.Assemble(textAsset);
+  AssemblyResult r = ScriptAssembler.Assemble(rawString);
+
+  r.Program  -- int[]  bytecode ready to pass to a VCPU
+  r.Labels   -- IReadOnlyDictionary<string,int>  name -> absolute address
+
+
+VCPU SETTINGS  (VCPUSettings)
+------------------------------
+  VCPUSettings s = VCPUSettings.Default;
+
+  s.MemorySize      uint    heap size in ints           (pragma: #MEMSIZE)
+  s.StackSize       uint    max stack depth             (pragma: #STACKSIZE)
+  s.Entry           int     start program counter       (pragma: #ENTRY)
+  s.TickRate        int     instructions per Step()     (pragma: #TICK_RATE)
+  s.Loops           int     run count; 0=once           (pragma: #LOOP)
+  s.Timeout         int     crash after N instructions  (pragma: #TIMEOUT)
+  s.Strict          bool    crash on unknown opcode     (pragma: #STRICT)
+  s.NoHostCall      bool    disable HOSTCALL            (pragma: #NO_HOSTCALL)
+  s.StackProtect    bool    clamp over/underflow        (pragma: #STACK_PROTECT)
+  s.DumpOnCrash     bool    dump state on crash         (pragma: #DUMP_ON_CRASH)
+  s.DumpOnExit      bool    dump state on clean exit    (pragma: #DUMP_ON_EXIT)
+  s.Profile         bool    log timing on exit          (pragma: #PROFILE)
+  s.LoggingEnabled  bool    verbose instruction log     (pragma: #DEBUG)
+  s.AutoRun         bool    run in constructor (default true)
+  s.Libraries       HostCallLibrary[]  host libraries to expose
+  s.Labels          IReadOnlyDictionary<string,int>  from AssemblyResult.Labels
+
+  VCPUSettings.LoopForever  -- pass as Loops to loop forever
+
+
+CREATING A VCPU MANUALLY
+--------------------------
+  var result = ScriptAssembler.Assemble(textAsset);
+  var settings = VCPUSettings.Default;
+  settings.Labels    = result.Labels;
+  settings.AutoRun   = false;  // optional: manual step control
+  settings.Libraries = new HostCallLibrary[] { new UnityLib() };
+
+  var vcpu = new VCPU(result.Program, new UnityLogger(), settings);
+
+
+VCPU RUNTIME API  (VCPU)
+--------------------------
+  vcpu.Step(int count = 1)           -- run N instructions (use in Update/Coroutine)
+  vcpu.Restart()                     -- reset to entry point (only after clean exit)
+  vcpu.EndProgram()                  -- halt immediately
+  vcpu.SetProgramCounter(int addr)   -- jump to absolute address
+  vcpu.SetProgramCounter(string lbl) -- jump to label name
+
+  vcpu.IsComplete                    -- true when halted or crashed
+  vcpu.ProgramCounter                -- current instruction index
+  vcpu.TickRate                      -- instructions per Step
+  vcpu.Labels                        -- IReadOnlyDictionary<string,int>
+  vcpu.Memory                        -- ref Memory  (heap + stack)
+  vcpu.Registers                     -- ref RegisterManager
+  vcpu.CoreCallDispatcher            -- built-in CORECALL dispatcher
+  vcpu.HostCallDispatcher            -- HOSTCALL dispatcher
+
+
+SERVICES
+---------
+PrefabService  -- maps integer keys to prefabs for use with SysSpawn
+
+  PrefabService.Data                        -- PrefabServiceData asset (auto-loaded from Resources)
+  PrefabService.AddPrefab(int key, go)      -- register a prefab
+  PrefabService.AddPrefab(go)              -- auto-key, returns assigned key
+  PrefabService.GetPrefab(int key)          -- retrieve prefab by key
+  PrefabService.GetIndex(go)               -- get key for a prefab (-1 if not found)
+  PrefabService.RemovePrefab(int key)
+  PrefabService.SpawnObjectPrefab(key, pos, rot, parent?)  -- instantiate + register in GameobjectService
+  PrefabService.SpawnObjectPrefab(key)     -- spawn at origin
+
+GameobjectService  -- maps integer keys to live scene GameObjects
+
+  GameobjectService.AddObject(int key, go)  -- register with specific key
+  GameobjectService.AddObject(go)           -- auto-key, returns assigned key
+  GameobjectService.GetObject(int key)      -- retrieve live object
+  GameobjectService.GetIndex(go)            -- get key (-1 if not found)
+  GameobjectService.RemoveObject(int key)
+  GameobjectService.DestroyGameobject(int key)  -- destroy + unregister
+  GameobjectService.Destroy(go)
+  GameobjectService.Clear()
+  GameobjectService.Count / .Keys / .Values
+
+
+UNITY HOST CALLS  (HOSTCALL 0x01 callID)
+------------------------------------------
+Expose the Unity library:  settings.Libraries = new[] { new UnityLib() };
+
+ASM syntax:   HOSTCALL 1, callID    (libID=1, callID from table below)
+HEX syntax:   0x03, 0x01, callID
+
+OBJECT LIFECYCLE
+  0x00  SysSpawn         R0/R1/R2=pos X/Y/Z  ECX=prefabKey  EDX=destReg → object ID
+  0x01  SysDestroy       ECX=objectId
+
+TRANSFORM
+  0x02  SysSetPosition   R0/R1/R2=X/Y/Z  ECX=objectId
+  0x03  SysLoadPosition  ECX=objectId  → R0/R1/R2
+  0x04  SysSetRotation   R0/R1/R2=Euler X/Y/Z  ECX=objectId
+  0x05  SysGetRotation   ECX=objectId  → R0/R1/R2
+  0x06  SysSetScale      R0/R1/R2=X/Y/Z  ECX=objectId
+  0x07  SysGetScale      ECX=objectId  → R0/R1/R2
+  0x08  SysSetActive     ECX=objectId  EDX=0(off)/1(on)
+  0x09  SysGetActive     ECX=objectId  → EDX=0/1
+
+PHYSICS
+  0x0A  SysSetVelocity   R0/R1/R2=X/Y/Z  ECX=objectId
+  0x0B  SysGetVelocity   ECX=objectId  → R0/R1/R2
+  0x0C  SysApplyForce    R0/R1/R2=force X/Y/Z  ECX=objectId  EDX=mode(0=Force 1=Impulse)
+  0x0D  SysRaycast       R0/R1/R2=origin  R3/R4/R5=dir  ECX=maxDist  → EDX=hit(0/1)
+
+ANIMATION
+  0x0E  SysPlayAnimation  ECX=clipId  EDX=objectId
+  0x0F  SysStopAnimation  ECX=clipId  EDX=objectId
+
+AUDIO
+  0x10  SysPlaySound     ECX=soundId  EDX=volume
+  0x11  SysStopSound     ECX=soundId
+
+RENDERING
+  0x12  SysSetColor      R0/R1/R2/R3=R/G/B/A  ECX=objectId
+  0x13  SysGetColor      ECX=objectId  → R0/R1/R2/R3
+
+SCENE / RESOURCE
+  0x14  SysLoadScene     ECX=sceneId  EDX=mode(0=Single 1=Additive)
+  0x15  SysUnloadScene   ECX=sceneId
+  0x16  SysFindByTag     ECX=tagId  → EDX=objectId  (0 if not found)
+  0x17  SysFindByName    ECX=nameId  → EDX=objectId (0 if not found)
+
+UI
+  0x18  SysUIShow        ECX=elementId
+  0x19  SysUIHide        ECX=elementId
+  0x1A  SysUISetText     ECX=elementId  EDX=memAddress (null-terminated string)
+  0x1B  SysUIGetText     ECX=elementId  → EDX=textHandle
+
+COMPONENT / MESSAGING
+  0x1C  SysAddComponent     ECX=componentId  EDX=objectId
+  0x1D  SysRemoveComponent  ECX=componentId  EDX=objectId
+  0x1E  SysGetComponent     ECX=componentId  EDX=objectId  → ESI=handle (0=not found)
+  0x1F  SysSendMessage      ECX=messageId    EDX=objectId  ESI=arg
+
+CAMERA
+  0x20  SysCameraSet     R0/R1/R2=pos  ECX=cameraObjectId
+  0x21  SysCameraLookAt  ECX=cameraObjectId  EDX=targetObjectId
+
+LIGHT
+  0x22  SysLightSet      ECX=lightObjectId  EDX=intensity
+
+PARTICLES
+  0x23  SysParticlePlay  ECX=objectId
+  0x24  SysParticleStop  ECX=objectId
+
+DEBUG
+  0x26  SysLogString     ECX=memAddress (null-terminated string)  EDX=level(0=Log 1=Warn 2=Error)

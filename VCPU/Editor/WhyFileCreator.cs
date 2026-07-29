@@ -55,19 +55,17 @@ public static class WhyFileCreator
     }
 
     public const string TemplateEmpty =
-        ".Headers\n" +
         "; script settings go here\n" +
         "\n" +
         ".Code\n" +
         "; code goes here\n";
 
     public const string TemplateHex =
-        ".Headers\n" +
-        "    #HEX\n" +
-        "    #MEMSIZE 16\n" +
-        "    #STACKSIZE 8\n" +
-        "    #LOOP 0\n" +
-        "    #TICK_RATE 10\n" +
+        "#HEX\n" +
+        "#MEMSIZE 16\n" +
+        "#STACKSIZE 8\n" +
+        "#LOOP 0\n" +
+        "#TICK_RATE 10\n" +
         "\n" +
         ".Code\n" +
         "    0x05, 0x00, 0x48, ;H\n" +
@@ -101,12 +99,11 @@ public static class WhyFileCreator
         "    0x00 ;END\n";
 
     public const string TemplateAsm =
-        ".Headers\n" +
-        "    #ASM\n" +
-        "    #MEMSIZE 16\n" +
-        "    #STACKSIZE 8\n" +
-        "    #LOOP 0\n" +
-        "    #TICK_RATE 10\n" +
+        "#ASM\n" +
+        "#MEMSIZE 16\n" +
+        "#STACKSIZE 8\n" +
+        "#LOOP 0\n" +
+        "#TICK_RATE 10\n" +
         "\n" +
         ".Code\n" +
         "    LOAD R0, 72         ; 'H' → mem[0]\n" +
@@ -140,12 +137,11 @@ public static class WhyFileCreator
         "    END\n";
 
     public const string TemplateDec =
-        ".Headers\n" +
-        "    #DEC\n" +
-        "    #MEMSIZE 16\n" +
-        "    #STACKSIZE 8\n" +
-        "    #LOOP 0\n" +
-        "    #TICK_RATE 10\n" +
+        "#DEC\n" +
+        "#MEMSIZE 16\n" +
+        "#STACKSIZE 8\n" +
+        "#LOOP 0\n" +
+        "#TICK_RATE 10\n" +
         "\n" +
         ".Code\n" +
         "    5 0 72          ;LOAD R0 'H'\n" +
@@ -179,15 +175,14 @@ public static class WhyFileCreator
         "    0               ;END\n";
 
     public const string TemplateBin =
-        ".Headers\n" +
-        "    #BIN\n" +
-        "    #MEMSIZE 16\n" +
-        "    #STACKSIZE 8\n" +
-        "    #LOOP 0\n" +
-        "    #TICK_RATE 10\n" +
+        "#BIN\n" +
+        "#MEMSIZE 16\n" +
+        "#STACKSIZE 8\n" +
+        "#LOOP 0\n" +
+        "#TICK_RATE 10\n" +
         "\n" +
-        "    ;Binary format: every value is a binary integer (e.g. 00000101 = 5 = LOAD)\n" +
-        "    ;Spaces and commas are both valid separators\n" +
+        "; Binary format: every value is a binary integer (e.g. 00000101 = 5 = LOAD)\n" +
+        "; Spaces and commas are both valid separators\n" +
         "\n" +
         ".Code\n" +
         "    00000101 00000000 01001000  ;LOAD R0 'H'\n" +

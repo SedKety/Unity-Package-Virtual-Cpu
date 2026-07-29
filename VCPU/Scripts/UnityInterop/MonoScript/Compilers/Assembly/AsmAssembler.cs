@@ -18,12 +18,14 @@ public class AsmAssembler : ITargetAssembler
         { "CORECALL", new[] { "val" } },
         { "HOSTCALL", new[] { "val", "val" } },
         { "LOAD", new[] { "val", "val" } },
-        { "JMP", new[] { "val", "isReg" } },
-        { "MOV", new[] { "val", "isReg", "val", "isReg" } },
-        { "JNE", new[] { "val", "isReg" } },
-        { "JE", new[] { "val", "isReg" } },
-        { "JL", new[] { "val", "isReg" } },
-        { "JG", new[] { "val", "isReg" } },
+        { "JMP", new[] { "val", "addrmode" } },
+        { "MOV", new[] { "val", "addrmode", "val", "addrmode" } },
+        { "JNE", new[] { "val", "addrmode" } },
+        { "JE", new[] { "val", "addrmode" } },
+        { "JL", new[] { "val", "addrmode" } },
+        { "JG",   new[] { "val", "addrmode" } },
+        { "CALL", new[] { "val", "addrmode" } },
+        { "RET",  Array.Empty<string>() },
         { "ADD", new[] { "val", "val" } },
         { "CMP", new[] { "val", "val" } },
         { "SUB", new[] { "val", "val" } },
@@ -72,7 +74,7 @@ public class AsmAssembler : ITargetAssembler
 
             foreach (var slot in format)
             {
-                if (slot == "isReg")
+                if (slot == "addrmode")
                 {
                     output.Add(IsRegMode(lastRaw));
                 }
@@ -80,7 +82,7 @@ public class AsmAssembler : ITargetAssembler
                 {
                     if (userIdx >= userOperands.Length)
                     {
-                        Debug.LogError($"[AsmAssembler] Too few operands for '{mnemonic}' (expected {format.Count(s => s != "isReg")}, got {userOperands.Length})");
+                        Debug.LogError($"[AsmAssembler] Too few operands for '{mnemonic}' (expected {format.Count(s => s != "addrmode")}, got {userOperands.Length})");
                         output.Add(0);
                     }
                     else
@@ -166,7 +168,7 @@ public class AsmAssembler : ITargetAssembler
         raw != null && raw.Length > 0 && char.IsLetter(raw[0]) &&
         Enum.TryParse<Register>(raw, ignoreCase: true, out _);
 
-    // Returns the isReg flag value for the given raw operand token:
+    // Returns the addrmode flag value for the given raw operand token:
     //   0 = static memory address   (bare number, label, or [number])
     //   1 = direct register         (bare register name like R0, EAX)
     //   2 = register-indirect       ([R0] — use register's runtime value as memory address)

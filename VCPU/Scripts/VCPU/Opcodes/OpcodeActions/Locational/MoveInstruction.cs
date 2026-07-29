@@ -11,7 +11,7 @@ namespace VirtualCPU.Opcodes
         public string Name => "MOV";
         public bool Accept(int opcode) => opcode == (int)OpCodes.MOV;
 
-        // isReg flag values used by source and destination operands:
+        // addrmode flag values used by source and destination operands:
         //   0 = direct memory address (static value baked in bytecode)
         //   1 = direct register
         //   2 = register-indirect: use the register's runtime value as a memory address
