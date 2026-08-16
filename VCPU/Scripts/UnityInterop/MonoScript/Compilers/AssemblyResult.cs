@@ -12,7 +12,7 @@ public class AssemblyResult
     public int[] Program { get; }
 
     /// <summary>
-    /// Label name → absolute bytecode address, collected from all code subsections.
+    /// Label name -> absolute bytecode address, collected from all code subsections.
     /// Case-insensitive. Empty when the script defines no labels.
     /// </summary>
     public IReadOnlyDictionary<string, int> Labels { get; }

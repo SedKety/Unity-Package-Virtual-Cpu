@@ -26,9 +26,6 @@ using UnityEngine;
 /// </remarks>
 public partial class WhyEditorWindow : EditorWindow
 {
-    // Mirrors the Headers enum values (minus NONE) so prefix helpers can identify
-    // sub-section directives (.HEX, .ASM, .DEC, .BIN) without taking a dependency
-    // on the ScriptAssembler assembly at parse time.
 
     /// <summary>
     /// Directive names that introduce a compilation-mode sub-section inside <c>.Code</c>.
@@ -55,23 +52,23 @@ public partial class WhyEditorWindow : EditorWindow
     private static readonly Dictionary<string, string> HeaderDirectiveDescriptions =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "INCLUDE",      "Load a host library by class name. Any HostCallLibrary subclass is valid (case-insensitive). Example: #include UnityLib" },
-            { "DEFINE",       "Define a compile-time constant. Usage: #define Name Value — every occurrence of Name in .Code is replaced by Value before assembly." },
-            { "HEX",          "Format: read the code section as hexadecimal values (e.g. 0x05, 0xFF)." },
-            { "ASM",          "Format: read the code section as assembly-like instructions (e.g. LOAD R0, 72)." },
-            { "DEC",          "Format: read the code section as decimal integers (e.g. 5, 255)." },
-            { "BIN",          "Format: read the code section as binary values (e.g. 00000101, 11111111)." },
-            { "MEMSIZE",      "Heap memory size in ints. Default: 16." },
-            { "STACKSIZE",    "Maximum stack depth in ints. Default: 8." },
-            { "ENTRY",        "Program counter start address. Default: 0." },
-            { "TIMEOUT",      "Crash after N instructions without halting. 0 = no limit." },
-            { "TICK_RATE",    "Instructions to execute per frame when running via Step(). 0 = run to completion in one frame." },
-            { "LOOP",         "Total run count. 0 = run once, N = run N times, 2147483647 = loop forever." },
-            { "DEBUG",        "Enable verbose instruction logging." },
-            { "STRICT",       "Crash on an unknown opcode instead of silently skipping it." },
+            { "INCLUDE", "Load a host library by class name. Any HostCallLibrary subclass is valid (case-insensitive). Example: #include UnityLib" },
+            { "DEFINE", "Define a compile-time constant. Usage: #define Name Value = every occurrence of Name in .Code is replaced by Value before assembly." },
+            { "HEX", "Format: read the code section as hexadecimal values (e.g. 0x05, 0xFF)." },
+            { "ASM", "Format: read the code section as assembly-like instructions (e.g. LOAD R0, 72)." },
+            { "DEC", "Format: read the code section as decimal integers (e.g. 5, 255)." },
+            { "BIN", "Format: read the code section as binary values (e.g. 00000101, 11111111)." },
+            { "MEMSIZE", "Heap memory size in ints. Default: 16." },
+            { "STACKSIZE", "Maximum stack depth in ints. Default: 8." },
+            { "ENTRY", "Program counter start address. Default: 0." },
+            { "TIMEOUT", "Crash after N instructions without halting. 0 = no limit." },
+            { "TICK_RATE", "Instructions to execute per frame when running via Step(). 0 = run to completion in one frame." },
+            { "LOOP", "Total run count. 0 = run once, N = run N times, 2147483647 = loop forever." },
+            { "DEBUG", "Enable verbose instruction logging." },
+            { "STRICT", "Crash on an unknown opcode instead of silently skipping it." },
             { "DUMP_ON_CRASH","Dump registers, flags, and memory when the program crashes." },
-            { "NO_HOSTCALL",  "Disable all HOSTCALL instructions (sandbox mode)." },
-            { "PROFILE",      "Log instruction count and elapsed time after execution ends." },
+            { "NO_HOSTCALL", "Disable all HOSTCALL instructions (sandbox mode)." },
+            { "PROFILE", "Log instruction count and elapsed time after execution ends." },
             { "DUMP_ON_EXIT", "Dump registers, flags, and memory on a clean (non-crash) exit." },
             { "STACK_PROTECT","Clamp on stack overflow/underflow instead of crashing." },
         };

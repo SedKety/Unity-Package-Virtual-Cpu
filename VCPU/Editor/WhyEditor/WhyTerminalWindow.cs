@@ -17,14 +17,14 @@ public class WhyTerminalWindow : EditorWindow
     private static WhyTerminalWindow s_Instance;
 
     private readonly List<LogEntry> _entries = new List<LogEntry>();
-    private Vector2  _scroll;
-    private bool     _autoScroll = true;
+    private Vector2 _scroll;
+    private bool _autoScroll = true;
     private GUIStyle _logStyle;
     private GUIStyle _errStyle;
     private GUIStyle _tsStyle;
-    private Action   _rerunAction;
-    private Action   _stopAction;
-    private bool     _isRunning;
+    private Action _rerunAction;
+    private Action _stopAction;
+    private bool _isRunning;
 
     [Serializable]
     private struct LogEntry { public string Text, Timestamp; public bool IsError; }

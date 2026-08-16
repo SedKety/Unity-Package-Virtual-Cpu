@@ -5,11 +5,17 @@ using System.Linq;
 using UnityEngine;
 using VirtualCPU;
 
+// TODO: Fix this slop, gotta get a linker, a proper parser, and a proper tokenizer.
+// REMARKS: Works for now but gotta fix this sometime later, if you do see this send me a DM and i'll fix it right away, im just procrastinating - 16/06/2026
+
 /// <summary>
 /// Assembles the given assembly source code into an array of integers representing the program.
 /// </summary>
 public class AsmAssembler : ITargetAssembler
 {
+    /// <summary>
+    /// Maps mnemonics to their expected operand formats.
+    /// </summary>
     private static readonly Dictionary<string, string[]> s_Formats =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
@@ -107,11 +113,19 @@ public class AsmAssembler : ITargetAssembler
 
     public string FormatAddress(int address) => address.ToString();
 
-    // Pass 1: map labels to their output-stream address.
-    // Each instruction advances by the same number of ints it emits in Assemble().
-    // Pass 1: map labels to their output-stream address.
-    // Each instruction advances by the same number of ints it emits in Assemble().
+    /// <summary>
+    /// Maps labels to their output stream address.
+    /// Each instruction advances by the same number of ints it emits in Assemble().
+    /// </summary>
+    /// <param name="lines">The assembly source code lines.</param>
+    /// <returns>A dictionary mapping label names to their corresponding addresses.</returns>
     public Dictionary<string, int> BuildLabelMap(string[] lines) => CollectLabels(lines);
+
+    /// <summary>
+    /// Collects labels from the given assembly source code lines and maps them to their corresponding addresses in the output stream.
+    /// </summary>
+    /// <param name="lines">The assembly source code lines.</param>
+    /// <returns>A dictionary mapping label names to their corresponding addresses.</returns>
     private Dictionary<string, int> CollectLabels(string[] lines)
     {
         var labels = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -135,15 +149,22 @@ public class AsmAssembler : ITargetAssembler
         return labels;
     }
 
+    /// <summary>
+    /// Parses the given raw operand token into an integer value, resolving labels and registers as needed.
+    /// </summary>
+    /// <param name="raw">The raw operand token to parse.</param>
+    /// <param name="labels">A dictionary mapping label names to their corresponding addresses.</param>
+    /// <returns>The integer value of the parsed operand.</returns>
+    /// <remarks>This stores floats in integers as their bitwise representation.</remarks>
     private int ParseValue(string raw, Dictionary<string, int> labels)
     {
-        // [addr] / [label] / [R0] — explicit memory reference, strip brackets then parse inner.
+        //[addr] / [label] / [R0] = explicit memory reference, strip brackets then parse inner.
         string s = raw.Length >= 2 && raw[0] == '[' && raw[raw.Length - 1] == ']'
             ? raw.Substring(1, raw.Length - 2)
             : raw;
 
-        // Only treat as a register if the token starts with a letter — prevents numeric
-        // memory addresses like "0", "1" from accidentally matching enum values.
+        //Only treat as a register if the token starts with a letter, this prevents numeric
+        //memory addresses like "0", "1" from accidentally matching enum values.
         if (s.Length > 0 && char.IsLetter(s[0]) &&
             Enum.TryParse<Register>(s, ignoreCase: true, out var reg))
             return (int)reg;
@@ -158,7 +179,6 @@ public class AsmAssembler : ITargetAssembler
         if (int.TryParse(s, out int dec))
             return dec;
 
-        // Float literal: 5f, 3.14f, or bare decimal 3.14
         bool hasFloatSuffix = s.EndsWith("f", StringComparison.OrdinalIgnoreCase);
         bool hasDecimalPoint = s.Contains('.');
         if (hasFloatSuffix || hasDecimalPoint)
@@ -172,16 +192,24 @@ public class AsmAssembler : ITargetAssembler
         return 0;
     }
 
-    // Only identifiers starting with a letter can be register names. This prevents numeric
-    // strings like "0", "11" from matching via Enum.TryParse's integer-value parsing.
+    /// <summary>
+    /// Only identifiers starting with a letter can be register names. This prevents numeric
+    /// strings like "0", "11" from matching via Enum.TryParse's integer value parsing.
+    /// </summary>
+    /// <param name="raw">The raw operand token to evaluate.</param>
+    /// <returns>True if the raw operand token is a register name, otherwise, false.</returns>
     private bool IsRegisterName(string raw) =>
         raw != null && raw.Length > 0 && char.IsLetter(raw[0]) &&
         Enum.TryParse<Register>(raw, ignoreCase: true, out _);
 
-    // Returns the addrmode flag value for the given raw operand token:
-    //   0 = static memory address   (bare number, label, or [number])
-    //   1 = direct register         (bare register name like R0, EAX)
-    //   2 = register-indirect       ([R0] — use register's runtime value as memory address)
+    /// <summary>
+    /// Returns the addrmode flag value for the given raw operand token:
+    /// 0 = static memory address (bare number, label, or [number]) 
+    /// 1 = direct register (bare register name like R0, EAX)
+    /// 2 = register indirect ([R0] = use register's runtime value as memory address)
+    /// </summary>
+    /// <param name="raw">The raw operand token to evaluate.</param>
+    /// <returns>The addrmode flag value for the given operand token.</returns>
     private int IsRegMode(string raw)
     {
         if (raw == null) return 0;

@@ -75,11 +75,15 @@ public partial class WhyEditorWindow
         {
             _pendingCursor = -1;
             PushUndo();
-            string formatted = ApplyAutoFormatting(_content, edited, out int newCursor);
 
             // Use stored control ID in case GUIUtility.keyboardControl is now 0.
             int ctrlID = _textAreaControlID > 0 ? _textAreaControlID : GUIUtility.keyboardControl;
             var te = GUIUtility.GetStateObject(typeof(TextEditor), ctrlID) as TextEditor;
+            // Pass the cursor position so ApplyAutoFormatting can locate the inserted character
+            // without ambiguity (FindInsertPos fails when inserting '\n' before an existing '\n').
+            int cursorHint = te != null ? te.cursorIndex : -1;
+            string formatted = ApplyAutoFormatting(_content, edited, cursorHint, out int newCursor);
+
             if (te != null)
             {
                 te.text = formatted;
@@ -205,14 +209,19 @@ public partial class WhyEditorWindow
     /// <param name="after">Content after the keystroke.</param>
     /// <param name="newCursorPos">Desired cursor position after formatting, or -1 to leave unchanged.</param>
     /// <returns>The formatted content string.</returns>
-    private static string ApplyAutoFormatting(string before, string after, out int newCursorPos)
+    private static string ApplyAutoFormatting(string before, string after, int cursorAfterEdit, out int newCursorPos)
     {
         newCursorPos = -1;
         if (after.Length != before.Length + 1)
             return after;
 
-        int insertPos = FindInsertPos(before, after);
-        if (insertPos < 0)
+        // Prefer the cursor position: insert happened at cursorAfterEdit - 1.
+        // FindInsertPos is ambiguous when the inserted char equals the char already at that position
+        // (e.g. inserting '\n' before an existing '\n' — both strings show '\n' at that index).
+        int insertPos = (cursorAfterEdit >= 1 && cursorAfterEdit <= after.Length)
+            ? cursorAfterEdit - 1
+            : FindInsertPos(before, after);
+        if (insertPos < 0 || insertPos >= after.Length)
             return after;
         char inserted = after[insertPos];
 

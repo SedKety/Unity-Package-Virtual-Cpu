@@ -2,7 +2,7 @@ using UnityEngine;
 using VirtualCPU;
 
 /// <summary>
-/// Core call — generates a height value based on Perlin noise using the provided seed and coordinates.
+/// Host call — generates a height value based on Perlin noise using the provided seed and coordinates.
 /// HOSTCALL 0x02 0x01: R0=x, R1=z, R2=maxHeight, R4=seed. Result is stored in EAX.
 /// </summary>
 [HostCallLibraryAttribute(0x02)]

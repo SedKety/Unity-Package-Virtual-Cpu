@@ -26,9 +26,9 @@ public static class ScriptAssembler
     /// <summary>
     /// Assembles raw .why script text into a runnable integer program.
     /// All executable code lives in .Code. Subroutines go after an END instruction
-    /// in .Code — CALL jumps to them, RET jumps back; they never auto-execute.
+    /// in .Code CALL jumps to them, RET jumps back; they never auto-execute.
     /// Labels are resolved in a global two-pass so forward references work freely.
-    /// <paramref name="extraDefines"/> are merged after parsing — they override any same-named #define in the script.
+    /// <paramref name="extraDefines"/> are merged after parsing they override any same-named #define in the script.
     /// </summary>
     public static AssemblyResult Assemble(string text, Dictionary<string, string> extraDefines)
     {

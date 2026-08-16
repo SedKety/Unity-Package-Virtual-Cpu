@@ -1,16 +1,18 @@
 #Include UnityLib
 #Include MathLib
 
+;Pragmas
 #ASM
 #MEMSIZE 32
 #STACKSIZE 8
 #LOOP 0
-#TICK_RATE 60
+#TICK_RATE 100
 #timeout 100000
 
-#Define X 10
-#Define Z 10
-#Define MaxHeight 10
+#Define X 25
+#Define Z 25
+#Define MaxHeight 5
+#Define BorderHeight 5
 
 .Code
 
@@ -24,6 +26,13 @@ CORECALL 0x02 ;SysRandom: R4 = random(0, 10000)
 LOAD EBX, X ;Max X (outer loop limit)
 LOAD R9,  Z ;Max Z (middle loop limit, stored in R9 to avoid conflict with EAX)
 
+;Precompute border comparison values into registers (CMP only works register-to-register)
+LOAD R5, 0   ;R5 = 0  (first-column boundary)
+MOV  EBX, R6 ;R6 = EBX
+DEC  R6      ;R6 = X - 1 (last X index)
+MOV  R9,  R7 ;R7 = R9
+DEC  R7      ;R7 = Z - 1 (last Z index)
+
 LOAD ESI, 0 ;Reset X counter
 
 X_Loop:
@@ -35,6 +44,20 @@ MOV  ESI, R0 ;R0 = current X
 MOV  EDI, R1 ;R1 = current Z
 LOAD R2,  MaxHeight ;R2 = max height
 hostcall MathLib, PerlinHeight ;EAX = column height (integer 0-MaxHeight, seed in R4)
+
+;If on the grid border, override sampled height with BorderHeight
+CMP  ESI, R5 ;X == 0?
+JE   @Set_Border_Height
+CMP  ESI, R6 ;X == last?
+JE   @Set_Border_Height
+CMP  EDI, R5 ;Z == 0?
+JE   @Set_Border_Height
+CMP  EDI, R7 ;Z == last?
+JE   @Set_Border_Height
+JMP  @After_Border_Check
+Set_Border_Height:
+LOAD EAX, BorderHeight
+After_Border_Check:
 
 ;Stack blocks from 0 up to the sampled height
 LOAD R11, 0 ;Reset Y counter

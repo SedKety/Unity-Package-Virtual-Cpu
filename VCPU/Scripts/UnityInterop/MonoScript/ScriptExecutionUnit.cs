@@ -12,8 +12,12 @@ using VirtualCPU;
 /// </summary>
 public class ScriptExecutionUnit : MonoBehaviour
 {
+    /// <summary>
+    /// Represents a value definition, which can be used to override a #define in the script.
+    /// E.G. #define MAX_HEALTH 100 -> MOV R0, MAX_HEALTH. R0 now stores 100.
+    /// </summary>
     [Serializable]
-    public struct DefineOverride
+    public struct ValueDefinition
     {
         public string Name;
         public string Value;
@@ -24,7 +28,7 @@ public class ScriptExecutionUnit : MonoBehaviour
     [SerializeField] private AssemblyTokenHolder _tokenHolder;
 
     [Header("Defines")]
-    [SerializeField] private List<DefineOverride> _defineOverrides = new List<DefineOverride>();
+    [SerializeField] private List<ValueDefinition> _defineOverrides = new List<ValueDefinition>();
 
     [Header("Memory")]
     [SerializeField] private uint _heapSize = 16;
@@ -40,6 +44,7 @@ public class ScriptExecutionUnit : MonoBehaviour
     private AssemblyResult _assembled;
     private ScriptHeaders _headers;
 
+    private Coroutine _process;
     #endregion
 
     #region Methods
@@ -50,7 +55,7 @@ public class ScriptExecutionUnit : MonoBehaviour
     public void SendMessage(string label) => _vcpu.SetProgramCounter(label);
 
     /// <summary>
-    /// Executes the compiled script using the virtual CPU (VCPU).
+    /// Executes the assembled script using the virtual CPU (VCPU).
     /// </summary>
     [ContextMenu("Execute")]
     public void Execute()
@@ -61,16 +66,34 @@ public class ScriptExecutionUnit : MonoBehaviour
                 overrides[d.Name] = d.Value;
 
         _assembled = ScriptAssembler.Assemble(_scriptFile, overrides.Count > 0 ? overrides : null);
-        _headers   = ScriptAssembler.ParseHeaders(_scriptFile);
+        _headers = ScriptAssembler.ParseHeaders(_scriptFile);
 
         bool usesCoroutine = _headers.TickRate > 0 || _headers.Loops != 0;
 
+#if UNITY_EDITOR
+        if (!Application.isPlaying && _headers.TickRate != 0)
+        {
+            Debug.LogWarning($"[ScriptExecutionUnit] Script is dependent on tickrate, can only be tested in playmode.");
+            return;
+        }
+#endif
+
+
         if (usesCoroutine)
-            StartCoroutine(ExecuteCoroutine());
+            _process = StartCoroutine(ExecuteCoroutine());
         else
             _vcpu = CreateVCPU(autoRun: true);
     }
 
+    [ContextMenu("Stop")]
+    public void StopProcess()
+    {
+        if (_process != null)
+        {
+            StopCoroutine(_process);
+            _process = null;
+        }
+    }
 
     private IEnumerator ExecuteCoroutine()
     {
@@ -98,6 +121,11 @@ public class ScriptExecutionUnit : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Gets the library defined in the script with #library {library_name}
+    /// </summary>
+    /// <param name="typeName">The name of the class hosting the library. </param>
+    /// <returns>The library found under the name. </returns>
     private static HostCallLibrary ResolveLibrary(string typeName)
     {
         var type = AppDomain.CurrentDomain.GetAssemblies()
@@ -107,12 +135,17 @@ public class ScriptExecutionUnit : MonoBehaviour
                               && t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase));
         if (type == null)
         {
-            Debug.LogWarning($"[ScriptExecutionUnit] #include '{typeName}' — no HostCallLibrary subclass with that name found.");
+            Debug.LogWarning($"[ScriptExecutionUnit] #include '{typeName}' no HostCallLibrary subclass with that name found.");
             return null;
         }
         return (HostCallLibrary)Activator.CreateInstance(type);
     }
 
+    /// <summary>
+    /// Creates a virtual cpu instance with the given settings and script 
+    /// </summary>
+    /// <param name="autoRun">Argument for the <see cref="VCPU"/> on whether or not to start when created</param>
+    /// <returns>The created <see cref="VCPU"/> instance. </returns>
     private VCPU CreateVCPU(bool autoRun)
     {
         var libraries = _headers?.Includes

@@ -40,10 +40,10 @@ public partial class WhyEditorWindow
     /// Opens the terminal window automatically. <see cref="VCPU"/> diagnostic logging is disabled so only
     /// program output (from SysWrite etc.) appears in the terminal.
     /// </summary>
-    private VCPU              _runningVcpu;
+    private VCPU _runningVcpu;
     private WhyTerminalWindow _runTerminal;
-    private int               _runMaxRuns;
-    private int               _runCount;
+    private int _runMaxRuns;
+    private int _runCount;
 
     private bool IsRunning => _runningVcpu != null;
 
@@ -65,12 +65,21 @@ public partial class WhyEditorWindow
 
         //I am sorry to every developer that exists for slamming a "▶" character into the terminal output, but it is a very nice touch and i will defend that lols.
         //Also if someone reads this (doubt it, personal project)  try slam metal, shit's THE shit.
-        terminal.Append($"▶  Compiled {program.Length} int(s). Running...");
+        terminal.Append($"▶  Compiled, program length: {program.Length * 32} bits. Running...");
 
         var headers = ScriptAssembler.ParseHeaders(StripVisualPrefixes(_content));
         var logger = new WhyTerminalLogger(terminal);
         try
         {
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying && headers.TickRate != 0)
+            {
+                logger.Log($"Stopping. Script is dependent on tickrate, can only be tested in playmode.");
+                return;
+            }
+#endif
+
             var libraries = ResolveLibraries(headers.Includes, terminal);
             var vcpu = new VCPU(program, logger, new VCPUSettings
             {
